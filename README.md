@@ -2,27 +2,47 @@
 
 Plain HTML/CSS/JS. No build step. Works on GitHub Pages.
 
-## Pages
-| File | Purpose |
+## IMPORTANT: upload ALL of these files
+The pages do nothing without the three `.js` files.
+
+    index.html  admission.html  fees.html  notices.html  magazine.html  idcard.html  admin.html
+    style.css   script.js       config.js  qrcode.js
+    assets/dsf-logo.png         gallery/ (your photos)
+
+GitHub: **Add file -> Upload files**, drag everything in, **Commit changes**. Live in ~1 minute.
+
+## Settings: edit `config.js` only
+| Setting | What it does |
 |---|---|
-| `index.html` | Home: programs, why us, approach, schedule, rating, FAQ, visit |
-| `admission.html` | Admission form -> opens a ready WhatsApp message to staff; UPI payment info |
-| `notices.html` | Notice board (edit `notices-data.js`) |
-| `magazine.html` | Photo gallery (edit `magazine-data.js`, put photos in `gallery/`) |
-| `idcard.html` | Staff-only ID card generator (PNG download / print) |
+| `upiId` | Switches on the QR code and "Open UPI app" button on the Pay Fees page |
+| `firebase.apiKey`, `firebase.projectId` | Switches on Admin login and the live Notice Board |
+| `MAGAZINE` | List of gallery photos |
 
-## Things you edit
-- `config.js` — **set `upiId`** (e.g. `name@bank`) to switch on the "Pay via UPI" button.
-- `notices-data.js` — add a notice: copy a block, newest first.
-- `magazine-data.js` — add a photo: upload to `gallery/`, add one line.
+## Admin login setup (one time, about 10 minutes, free plan)
+1. https://console.firebase.google.com -> **Add project**.
+2. **Build -> Authentication -> Get started -> Email/Password -> Enable**.
+   Then **Users -> Add user**: the admin's email and a strong password.
+3. **Build -> Firestore Database -> Create database** (production mode).
+4. Firestore **Rules** tab: paste this, put the admin's email in it, **Publish**.
 
-## Publish / update
-1. GitHub repo -> **Add file -> Upload files**. Drag in everything in this folder
-   (keep the `assets/` and `gallery/` folders), then **Commit changes**.
-2. **Settings -> Pages -> Deploy from a branch -> main / (root)**.
-3. Live at `https://raja2025-tech.github.io/Dreamer-Swimming-Foundation/` in ~1 minute.
+        rules_version = '2';
+        service cloud.firestore {
+          match /databases/{database}/documents {
+            match /notices/{id} {
+              allow read: if true;
+              allow write: if request.auth != null
+                && request.auth.token.email in ['ADMIN-EMAIL-HERE'];
+            }
+          }
+        }
 
-## Limits of a static site (by design)
-No server or database, so there is no student login, no stored admissions and no payment
-verification. Admissions arrive on WhatsApp; staff confirm payments manually. `idcard.html`
-is hidden from search but is **not password-protected**.
+5. **Project settings (gear icon) -> General**: copy **Project ID** and **Web API key**
+   into `config.js`, upload `config.js`.
+6. Open `/admin.html` (footer -> "Admin login"), sign in, post a notice.
+
+The email list in the rules is what keeps strangers out, so do not skip step 4.
+
+## Limits
+- Payments are not verified automatically. The payer sends the UPI transaction ID on WhatsApp and staff check it.
+- Admissions arrive on WhatsApp and are not stored on the site.
+- `idcard.html` is hidden from search engines but has no password.
