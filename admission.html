@@ -14,6 +14,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&family=Inter:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
+<script>document.documentElement.className="js"</script>
 </head>
 <body>
 
@@ -70,14 +71,15 @@
         <li class="step"><b>03</b><p>Our team confirms the batch and fee. Pay on the <a href="fees.html">Pay Fees</a> page, and the Student ID card is issued once admission is complete.</p></li>
       </ol>
 
+      <noscript><p class="form-error">This form needs JavaScript. Please call or WhatsApp us on +91 87772 92030.</p></noscript>
       <form class="form-card" id="admForm" novalidate>
         <div class="form-grid">
           <div class="field full"><label for="f_name">Student's full name *</label><input id="f_name" name="name" required autocomplete="name"></div>
-          <div class="field"><label for="f_dob">Date of birth *</label><input id="f_dob" type="date" required></div>
+          <div class="field"><label for="f_dob">Date of birth *</label><input id="f_dob" type="date" required min="1930-01-01"></div>
           <div class="field"><label for="f_gender">Gender</label>
             <select id="f_gender"><option value="">Select</option><option>Male</option><option>Female</option><option>Other</option></select></div>
           <div class="field"><label for="f_guardian">Parent / guardian name</label><input id="f_guardian" autocomplete="off"></div>
-          <div class="field"><label for="f_phone">Phone (WhatsApp) *</label><input id="f_phone" type="tel" inputmode="tel" placeholder="98XXXXXXXX" required></div>
+          <div class="field"><label for="f_phone">Phone (WhatsApp) *</label><input id="f_phone" type="tel" inputmode="numeric" maxlength="14" autocomplete="tel" placeholder="10-digit mobile number" required></div>
           <div class="field"><label for="f_program">Program *</label><select id="f_program" required><option value="">Select a program</option><option>Novice Training</option><option>Semi-Advance Training</option><option>Advance Training</option><option>Competitive Swimmer Training</option><option>First Aid Training</option><option>Lifesaving & Lifeguard Training</option></select></div>
           <div class="field"><label for="f_batch">Preferred batch</label>
             <select id="f_batch"><option value="">No preference</option><optgroup label="Morning"><option>Morning 6:00 AM</option><option>Morning 6:40 AM</option><option>Morning 7:20 AM</option></optgroup><optgroup label="Evening"><option>Evening 4:00 PM</option><option>Evening 4:40 PM</option><option>Evening 5:20 PM</option></optgroup><optgroup label="Night"><option>Night 8:00 PM</option></optgroup></select></div>

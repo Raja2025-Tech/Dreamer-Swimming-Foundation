@@ -3,13 +3,14 @@
 Plain HTML/CSS/JS. No build step. Works on GitHub Pages.
 
 ## IMPORTANT: upload ALL of these files
-The pages do nothing without the three `.js` files.
+The forms, notices and water animation do nothing without the two `.js` files.
 
     index.html  admission.html  fees.html  notices.html  magazine.html  idcard.html  admin.html
-    style.css   script.js       config.js  qrcode.js
+    style.css   script.js       config.js
     assets/dsf-logo.png         gallery/ (your photos)
 
 GitHub: **Add file -> Upload files**, drag everything in, **Commit changes**. Live in ~1 minute.
+Check: `script.js` should be about 84 KB in the repo. `qrcode.js` is no longer used and can be deleted.
 
 ## Settings: edit `config.js` only
 | Setting | What it does |

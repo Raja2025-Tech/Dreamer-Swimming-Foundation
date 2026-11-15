@@ -14,6 +14,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&family=Inter:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
+<script>document.documentElement.className="js"</script>
 </head>
 <body>
 
@@ -57,6 +58,7 @@
 <!-- ===== HERO ===== -->
   <section class="hero" id="top">
     <div class="hero-bg" aria-hidden="true">
+      <canvas class="water" id="water"></canvas>
       <svg class="caustics" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
         <filter id="causticsFilter" x="-25%" y="-25%" width="150%" height="150%">
           <feTurbulence type="turbulence" baseFrequency="0.018 0.032" numOctaves="2" seed="11" result="noiseA">
