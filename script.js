@@ -140,7 +140,18 @@ function noticeCard(n) {
     img.src = URL.createObjectURL(f); img.hidden = false;
   });
   var todayIso = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
-  $id("f_dob").max = todayIso;
+  var minAgeIso = (parseInt(todayIso.slice(0, 4), 10) - 3) + todayIso.slice(4);   // swimmer must be at least 3
+  $id("f_dob").max = minAgeIso;
+  // pre-select program / batch from links like admission.html?program=…&batch=…
+  try {
+    var q = new URLSearchParams(location.search);
+    [["program", "f_program"], ["batch", "f_batch"]].forEach(function (x) {
+      var want = q.get(x[0]), sel = $id(x[1]); if (!want) return;
+      for (var i = 0; i < sel.options.length; i++) if (sel.options[i].text === want) { sel.selectedIndex = i; sel.classList.add("prefilled"); }
+    });
+  } catch (e) {}
+  // browsers can restore a chosen file on back/forward without firing "change"
+  window.addEventListener("pageshow", function () { var f = $id("f_photo"); if (f.files && f.files[0]) f.dispatchEvent(new Event("change")); });
   form.addEventListener("submit", function (ev) {
     ev.preventDefault();
     var err = $id("admError"); showMsg(err, "");
@@ -149,6 +160,7 @@ function noticeCard(n) {
       .filter(function (x) { return !v(x[0]); });
     if (missing.length) { $id(missing[0][0]).focus(); return showMsg(err, "Please fill in: " + missing.map(function (x) { return x[1]; }).join(", ") + "."); }
     if (v("f_dob") > todayIso || v("f_dob") < "1930-01-01") { $id("f_dob").focus(); return showMsg(err, "Please check the date of birth."); }
+    if (v("f_dob") > minAgeIso) { $id("f_dob").focus(); return showMsg(err, "The swimmer must be at least 3 years old. Please check the date of birth."); }
     if (!/^[6-9]\d{9}$/.test(v("f_phone").replace(/\D/g, "").replace(/^(91|0)(?=\d{10}$)/, ""))) { $id("f_phone").focus(); return showMsg(err, "Please enter a valid 10-digit mobile number."); }
     var dob = v("f_dob").split("-").reverse().join("/");
     var lines = [
@@ -300,6 +312,76 @@ function noticeCard(n) {
       .then(function () { btn.disabled = false; btn.textContent = "Post notice"; });
   });
   show();
+})();
+
+// ---------- Home: live pool status + bookable batches (India time) ----------
+(function () {
+  var pill = $id("poolStatus"), rows = document.querySelectorAll(".b-row");
+  if (!pill && !rows.length) return;
+  var DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  var MORNING = [["Morning", 360], ["Morning", 400], ["Morning", 440]];
+  var ALL = MORNING.concat([["Evening", 960], ["Evening", 1000], ["Evening", 1040], ["Night", 1200]]);
+  function plan(d) { return d === 1 ? [] : d === 0 ? MORNING : ALL; }       // Mon closed, Sun mornings only
+  function clock(m) { var h = Math.floor(m / 60), mm = m % 60, ap = h >= 12 ? "PM" : "AM"; h = h % 12 || 12; return h + ":" + (mm < 10 ? "0" : "") + mm + " " + ap; }
+  function ist() {
+    var p = {}; new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Kolkata", weekday: "short", hour: "2-digit", minute: "2-digit", hourCycle: "h23" })
+      .formatToParts(new Date()).forEach(function (x) { p[x.type] = x.value; });
+    return { day: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].indexOf(p.weekday), min: (+p.hour) * 60 + (+p.minute) };
+  }
+  function inMins(n) { var h = Math.floor(n / 60), m = n % 60; return (h ? h + " h " : "") + (m ? m + " min" : (h ? "" : "under a minute")); }
+  function update() {
+    var t = ist(), today = plan(t.day), now = null, next = null, text, state;
+    today.forEach(function (b) { if (t.min >= b[1] && t.min < b[1] + 40) now = b; if (!next && b[1] > t.min) next = b; });
+    if (now) { state = "live"; text = "In the pool now: " + now[0].toLowerCase() + " " + clock(now[1]) + " batch, until " + clock(now[1] + 40); }
+    else if (next) {
+      var gap = next[1] - t.min;
+      state = gap <= 10 ? "live" : "soon";
+      text = gap <= 10 ? "Reporting now for the " + clock(next[1]) + " batch" :
+             "Next batch " + clock(next[1]) + (gap <= 180 ? ", in " + inMins(gap) : "") + " · report by " + clock(next[1] - 10);
+    } else {
+      state = "closed";
+      for (var k = 1; k <= 7; k++) { var d = (t.day + k) % 7; if (plan(d).length) { next = plan(d)[0]; break; } }
+      var when = k === 1 ? "tomorrow" : DAYS[(t.day + k) % 7];
+      text = (t.day === 1 ? "Closed today (Monday)" : "Done for today") + " · next batch " + when + " " + clock(next[1]);
+      next = null;
+    }
+    if (pill) { pill.hidden = false; pill.dataset.state = state; $id("poolStatusText").textContent = text; }
+    Array.prototype.forEach.call(rows, function (r) {
+      var st = r.dataset.start.match(/(\d+):(\d+) (AM|PM)/), m = (+st[1] % 12 + (st[3] === "PM" ? 12 : 0)) * 60 + (+st[2]);
+      var isToday = today.some(function (b) { return b[1] === m; });
+      var tag = !isToday ? "" : (now && now[1] === m) ? "now" : (next && next[1] === m) ? "next" : (m + 40 <= t.min) ? "done" : "";
+      r.dataset.tag = tag;
+    });
+  }
+  update(); setInterval(update, 30000);
+})();
+
+// ---------- Home: program finder ----------
+(function () {
+  var f = $id("finder"); if (!f) return;
+  var goalQ = f.querySelector('[data-step="goal"]'), levelQ = f.querySelector('[data-step="level"]'), res = $id("finderResult");
+  var R = {
+    0: ["Novice Training", "Starting from zero is exactly what this level is for. Coaches work one-on-one with hesitant swimmers, so fear of water is not a problem."],
+    1: ["Semi-Advance Training", "The basics are in place, so the next step is cleaner technique, better breathing and more endurance."],
+    2: ["Advance Training", "A confident swimmer is ready for sharper technique, more speed and longer sessions."],
+    compete: ["Competitive Swimmer Training", "Complete support for competition: technique, conditioning and race-readiness. Our team checks the swimmer's current level when you apply."],
+    aid: ["First Aid Training", "Practical first aid for water-related emergencies. Open to swimmers, parents and anyone who wants to be prepared."],
+    life: ["Lifesaving & Lifeguard Training", "Rescue technique, water safety and emergency response. Our team checks the swimmer's current level when you apply."]
+  };
+  function pick(group, btn) { Array.prototype.forEach.call(group.querySelectorAll(".chip"), function (c) { c.classList.toggle("active", c === btn); c.setAttribute("aria-pressed", c === btn); }); }
+  function show(key) {
+    var r = R[key]; $id("finderName").textContent = r[0]; $id("finderWhy").textContent = r[1];
+    $id("finderApply").href = "admission.html?program=" + encodeURIComponent(r[0]);
+    res.hidden = false; res.classList.remove("pop"); void res.offsetWidth; res.classList.add("pop");
+  }
+  goalQ.addEventListener("click", function (e) {
+    var b = e.target.closest(".chip"); if (!b) return; pick(goalQ, b);
+    var g = b.dataset.goal;
+    if (g === "swim") { levelQ.hidden = false; res.hidden = true; pick(levelQ, null); }
+    else { levelQ.hidden = true; show(g); }
+  });
+  levelQ.addEventListener("click", function (e) { var b = e.target.closest(".chip"); if (!b) return; pick(levelQ, b); show(b.dataset.level); });
+  $id("finderReset").addEventListener("click", function () { pick(goalQ, null); pick(levelQ, null); levelQ.hidden = true; res.hidden = true; goalQ.querySelector(".chip").focus(); });
 })();
 
 // ---------- Home: swimming-pool water (WebGL) ----------

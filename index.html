@@ -8,6 +8,25 @@
 <meta property="og:title" content="Dreamer Swimming Foundation — Swimming Institute in Barasat, Kolkata">
 <meta property="og:description" content="Dreamer Swimming Foundation, Barasat: novice to competitive swimming, first aid and lifeguard training. 4.9★ on Google.">
 <meta property="og:type" content="website">
+<meta property="og:image" content="https://raja2025-tech.github.io/Dreamer-Swimming-Foundation/assets/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="canonical" href="https://raja2025-tech.github.io/Dreamer-Swimming-Foundation/">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"SportsActivityLocation","name":"Dreamer Swimming Foundation",
+"description":"Swimming institute in Barasat offering novice to competitive swimming, first aid and lifeguard training.",
+"url":"https://raja2025-tech.github.io/Dreamer-Swimming-Foundation/","telephone":"+91-87772-92030",
+"image":"https://raja2025-tech.github.io/Dreamer-Swimming-Foundation/assets/og.png",
+"address":{"@type":"PostalAddress","streetAddress":"Barrackpore - Barasat Rd, Singha Garh Nabapally, Sarojinipally, Chakravartipara","addressLocality":"Barasat, Kolkata","addressRegion":"West Bengal","postalCode":"700126","addressCountry":"IN"},
+"geo":{"@type":"GeoCoordinates","latitude":22.7258249,"longitude":88.476228},
+"hasMap":"https://maps.app.goo.gl/cyS78gadZh512XYx7",
+"openingHoursSpecification":[
+{"@type":"OpeningHoursSpecification","dayOfWeek":["Tuesday","Wednesday","Thursday","Friday","Saturday"],"opens":"06:00","closes":"08:00"},
+{"@type":"OpeningHoursSpecification","dayOfWeek":["Tuesday","Wednesday","Thursday","Friday","Saturday"],"opens":"16:00","closes":"18:00"},
+{"@type":"OpeningHoursSpecification","dayOfWeek":["Tuesday","Wednesday","Thursday","Friday","Saturday"],"opens":"20:00","closes":"20:40"},
+{"@type":"OpeningHoursSpecification","dayOfWeek":"Sunday","opens":"06:00","closes":"08:00"}]}
+</script>
 <meta name="theme-color" content="#04222E">
 <link rel="icon" type="image/png" href="assets/dsf-logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -98,6 +117,7 @@
     </div>
 
     <div class="hero-content">
+      <p class="pool-status" id="poolStatus" hidden><span class="ps-dot" aria-hidden="true"></span><span id="poolStatusText"></span></p>
       <p class="eyebrow eyebrow-light">Barasat, Kolkata</p>
       <h1 class="hero-title">
         Learn to swim.<br>
@@ -141,41 +161,97 @@
     <div class="container">
       <p class="eyebrow">Programs</p>
       <h2 class="section-title">Find your lane.</h2>
-      <p class="section-lead">Six programs, from a first splash to lifeguard training, each paced for where a swimmer is actually starting from.</p>
-      <div class="card-grid reveal-group">
-        <article class="prog-card reveal">
-          <span class="prog-icon" aria-hidden="true"><svg viewBox="0 0 48 48"><circle cx="24" cy="14" r="5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M6 30c4-4 8-4 12 0s8 4 12 0 8-4 12 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M6 38c4-4 8-4 12 0s8 4 12 0 8-4 12 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity="0.4"/></svg></span>
-          <h3>Novice Training</h3>
-          <p>For absolute beginners, children and adults alike. Coaches work one-on-one with hesitant swimmers, so this is also where students overcome a fear of water.</p>
-        </article>
-        <article class="prog-card reveal">
-          <span class="prog-icon" aria-hidden="true"><svg viewBox="0 0 48 48"><path d="M6 32c4-4 8-4 12 0s8 4 12 0 8-4 12 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M6 40c4-4 8-4 12 0s8 4 12 0 8-4 12 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity="0.4"/><path d="M24 20V8M17 15l7-7 7 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-          <h3>Semi-Advance Training</h3>
-          <p>For swimmers with the basics in place: refining stroke technique, breathing and endurance before moving to advanced work.</p>
-        </article>
-        <article class="prog-card reveal">
-          <span class="prog-icon" aria-hidden="true"><svg viewBox="0 0 48 48"><circle cx="24" cy="26" r="15" fill="none" stroke="currentColor" stroke-width="2"/><path d="M24 26V16M18 6h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M24 26l7 4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
-          <h3>Advance Training</h3>
-          <p>For confident swimmers ready to sharpen technique, build real speed and train through longer, more demanding sessions.</p>
-        </article>
-        <article class="prog-card reveal">
-          <span class="prog-icon" aria-hidden="true"><svg viewBox="0 0 48 48"><circle cx="24" cy="18" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M18 25l-6 15 12-7 12 7-6-15" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/></svg></span>
-          <h3>Competitive Swimmer Training</h3>
-          <p>Complete training support for swimmers preparing to compete: technique, conditioning and race-readiness under close coaching.</p>
-        </article>
-        <article class="prog-card reveal">
+      <p class="section-lead">Four levels take a swimmer from a first splash to race day. Start at the level that matches today, and move up when your coach says you are ready.</p>
+      <p class="pathway-end" aria-hidden="true">Shallow end · start here</p>
+      <ol class="pathway reveal-group" aria-label="Swimming levels, from beginner to competitive">
+        <li class="lane reveal">
+          <span class="lane-no" aria-hidden="true">1</span>
+          <div class="lane-body">
+            <p class="lane-for">Can't swim yet, or nervous in water</p>
+            <h3>Novice Training</h3>
+            <p>Water confidence, floating, breathing and a first stroke. Coaches work one-on-one with hesitant swimmers, so this is also where students overcome a fear of water.</p>
+            <a class="lane-link" href="admission.html?program=Novice%20Training">Apply for Novice <span aria-hidden="true">→</span></a>
+          </div>
+          <span class="lane-icon" aria-hidden="true"><svg viewBox="0 0 48 48"><circle cx="24" cy="14" r="5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M6 30c4-4 8-4 12 0s8 4 12 0 8-4 12 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M6 38c4-4 8-4 12 0s8 4 12 0 8-4 12 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity="0.4"/></svg></span>
+        </li>
+        <li class="lane reveal">
+          <span class="lane-no" aria-hidden="true">2</span>
+          <div class="lane-body">
+            <p class="lane-for">Swims a little, basics in place</p>
+            <h3>Semi-Advance Training</h3>
+            <p>Refining stroke technique, breathing rhythm and endurance before moving to advanced work.</p>
+            <a class="lane-link" href="admission.html?program=Semi-Advance%20Training">Apply for Semi-Advance <span aria-hidden="true">→</span></a>
+          </div>
+          <span class="lane-icon" aria-hidden="true"><svg viewBox="0 0 48 48"><path d="M6 32c4-4 8-4 12 0s8 4 12 0 8-4 12 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M6 40c4-4 8-4 12 0s8 4 12 0 8-4 12 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity="0.4"/><path d="M24 20V8M17 15l7-7 7 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        </li>
+        <li class="lane reveal">
+          <span class="lane-no" aria-hidden="true">3</span>
+          <div class="lane-body">
+            <p class="lane-for">Swims confidently</p>
+            <h3>Advance Training</h3>
+            <p>Sharper technique, real speed, and longer, more demanding sessions.</p>
+            <a class="lane-link" href="admission.html?program=Advance%20Training">Apply for Advance <span aria-hidden="true">→</span></a>
+          </div>
+          <span class="lane-icon" aria-hidden="true"><svg viewBox="0 0 48 48"><circle cx="24" cy="26" r="15" fill="none" stroke="currentColor" stroke-width="2"/><path d="M24 26V16M18 6h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M24 26l7 4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
+        </li>
+        <li class="lane reveal">
+          <span class="lane-no" aria-hidden="true">4</span>
+          <div class="lane-body">
+            <p class="lane-for">Ready to race</p>
+            <h3>Competitive Swimmer Training</h3>
+            <p>Complete training support for competition: technique, conditioning and race-readiness under close coaching.</p>
+            <a class="lane-link" href="admission.html?program=Competitive%20Swimmer%20Training">Apply for Competitive <span aria-hidden="true">→</span></a>
+          </div>
+          <span class="lane-icon" aria-hidden="true"><svg viewBox="0 0 48 48"><circle cx="24" cy="18" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M18 25l-6 15 12-7 12 7-6-15" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/></svg></span>
+        </li>
+      </ol>
+      <p class="pathway-end pathway-end-deep" aria-hidden="true">Deep end · race ready</p>
+      <div class="safety-track">
+        <p class="eyebrow">Safety track</p>
+        <p class="safety-lead">Open to anyone, alongside or after any level.</p>
+        <div class="safety-grid reveal-group">
+        <article class="safety-card reveal">
           <span class="prog-icon" aria-hidden="true"><svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="17" fill="none" stroke="currentColor" stroke-width="2"/><path d="M24 16v16M16 24h16" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></span>
-          <h3>First Aid Training</h3>
-          <p>Practical first aid training for water-related emergencies, for swimmers, parents and anyone who wants to be prepared.</p>
+          <div><h3>First Aid Training</h3><p>Practical first aid for water-related emergencies, for swimmers, parents and anyone who wants to be prepared.</p><a class="lane-link" href="admission.html?program=First%20Aid%20Training">Apply <span aria-hidden="true">→</span></a></div>
         </article>
-        <article class="prog-card reveal">
+        <article class="safety-card reveal">
           <span class="prog-icon" aria-hidden="true"><svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="16" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="24" cy="24" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="M24 8v9M24 31v9M8 24h9M31 24h9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
-          <h3>Lifesaving &amp; Lifeguard Training</h3>
-          <p>For those training to become lifeguards or rescuers: rescue technique, water safety and emergency response.</p>
+          <div><h3>Lifesaving &amp; Lifeguard Training</h3><p>Rescue technique, water safety and emergency response, for those training to become lifeguards or rescuers.</p><a class="lane-link" href="admission.html?program=Lifesaving%20%26%20Lifeguard%20Training">Apply <span aria-hidden="true">→</span></a></div>
         </article>
+        </div>
+      </div>
+      <div class="finder reveal" id="finder">
+        <div class="finder-head">
+          <p class="eyebrow">Not sure where to start?</p>
+          <h3>Find your program in two taps.</h3>
+        </div>
+        <div class="finder-q" data-step="goal">
+          <p class="finder-label">What would you like to do?</p>
+          <div class="finder-opts">
+            <button type="button" class="chip" data-goal="swim">Learn or improve swimming</button>
+            <button type="button" class="chip" data-goal="compete">Train for competitions</button>
+            <button type="button" class="chip" data-goal="aid">Learn first aid</button>
+            <button type="button" class="chip" data-goal="life">Become a lifeguard</button>
+          </div>
+        </div>
+        <div class="finder-q" data-step="level" hidden>
+          <p class="finder-label">How comfortable is the swimmer in water today?</p>
+          <div class="finder-opts">
+            <button type="button" class="chip" data-level="0">Can't swim yet</button>
+            <button type="button" class="chip" data-level="1">Can swim a little</button>
+            <button type="button" class="chip" data-level="2">Swims confidently</button>
+          </div>
+        </div>
+        <div class="finder-result" id="finderResult" hidden aria-live="polite">
+          <p class="finder-label">Our suggestion</p>
+          <h4 id="finderName"></h4>
+          <p id="finderWhy"></p>
+          <div class="cta-row"><a class="btn btn-coral" id="finderApply" href="admission.html">Apply for this program</a><button type="button" class="btn btn-outline" id="finderReset">Start again</button></div>
+        </div>
       </div>
     </div>
   </section>
+  <div class="lane-rope" aria-hidden="true"></div>
 
   <!-- ===== WHY CHOOSE US ===== -->
   <section class="section why-us" id="why-us">
@@ -228,7 +304,7 @@
     <div class="container">
       <p class="eyebrow eyebrow-light">Batch timings</p>
       <h2 class="section-title light">Seven batches a day.</h2>
-      <p class="section-lead light">Every batch is 40 minutes in the pool. Choose the one that fits your day.</p>
+      <p class="section-lead light">Every batch is 40 minutes in the pool. Tap a batch to apply for it.</p>
       <div class="arrive-note reveal">
         <strong>Be present 10 minutes before your batch.</strong>
         <span>Free-hand exercise comes before every batch, so the reporting time is 10 minutes earlier than the batch time.</span>
@@ -237,17 +313,17 @@
         <div class="batch-card reveal">
           <h3>Morning</h3>
           <p class="batch-count">3 batches</p>
-          <ul><li><span class="b-time">6:00 AM – 6:40 AM</span><span class="b-rep">Report by 5:50 AM</span></li><li><span class="b-time">6:40 AM – 7:20 AM</span><span class="b-rep">Report by 6:30 AM</span></li><li><span class="b-time">7:20 AM – 8:00 AM</span><span class="b-rep">Report by 7:10 AM</span></li></ul>
+          <ul><li><a class="b-row" href="admission.html?batch=Morning%206:00%20AM" data-start="6:00 AM" data-sess="Morning"><span class="b-time">6:00 AM – 6:40 AM</span><span class="b-rep">Report by 5:50 AM</span><span class="b-book">Book <span aria-hidden="true">→</span></span></a></li><li><a class="b-row" href="admission.html?batch=Morning%206:40%20AM" data-start="6:40 AM" data-sess="Morning"><span class="b-time">6:40 AM – 7:20 AM</span><span class="b-rep">Report by 6:30 AM</span><span class="b-book">Book <span aria-hidden="true">→</span></span></a></li><li><a class="b-row" href="admission.html?batch=Morning%207:20%20AM" data-start="7:20 AM" data-sess="Morning"><span class="b-time">7:20 AM – 8:00 AM</span><span class="b-rep">Report by 7:10 AM</span><span class="b-book">Book <span aria-hidden="true">→</span></span></a></li></ul>
         </div>
         <div class="batch-card reveal">
           <h3>Evening</h3>
           <p class="batch-count">3 batches</p>
-          <ul><li><span class="b-time">4:00 PM – 4:40 PM</span><span class="b-rep">Report by 3:50 PM</span></li><li><span class="b-time">4:40 PM – 5:20 PM</span><span class="b-rep">Report by 4:30 PM</span></li><li><span class="b-time">5:20 PM – 6:00 PM</span><span class="b-rep">Report by 5:10 PM</span></li></ul>
+          <ul><li><a class="b-row" href="admission.html?batch=Evening%204:00%20PM" data-start="4:00 PM" data-sess="Evening"><span class="b-time">4:00 PM – 4:40 PM</span><span class="b-rep">Report by 3:50 PM</span><span class="b-book">Book <span aria-hidden="true">→</span></span></a></li><li><a class="b-row" href="admission.html?batch=Evening%204:40%20PM" data-start="4:40 PM" data-sess="Evening"><span class="b-time">4:40 PM – 5:20 PM</span><span class="b-rep">Report by 4:30 PM</span><span class="b-book">Book <span aria-hidden="true">→</span></span></a></li><li><a class="b-row" href="admission.html?batch=Evening%205:20%20PM" data-start="5:20 PM" data-sess="Evening"><span class="b-time">5:20 PM – 6:00 PM</span><span class="b-rep">Report by 5:10 PM</span><span class="b-book">Book <span aria-hidden="true">→</span></span></a></li></ul>
         </div>
         <div class="batch-card reveal">
           <h3>Night</h3>
           <p class="batch-count">1 batch</p>
-          <ul><li><span class="b-time">8:00 PM – 8:40 PM</span><span class="b-rep">Report by 7:50 PM</span></li></ul>
+          <ul><li><a class="b-row" href="admission.html?batch=Night%208:00%20PM" data-start="8:00 PM" data-sess="Night"><span class="b-time">8:00 PM – 8:40 PM</span><span class="b-rep">Report by 7:50 PM</span><span class="b-book">Book <span aria-hidden="true">→</span></span></a></li></ul>
         </div>
       </div>
       <ul class="day-row reveal">
@@ -271,6 +347,7 @@
     </div>
   </section>
 
+  <div class="lane-rope" aria-hidden="true"></div>
   <!-- ===== FAQ ===== -->
   <section class="section faq" id="faq">
     <div class="container">
@@ -292,7 +369,7 @@
         </details>
         <details class="faq-item reveal">
           <summary>Which program is right for me or my child?</summary>
-          <p>Message us on WhatsApp with the swimmer's age and current comfort in water, and we will suggest a program and batch.</p>
+          <p>Use <a href="#finder">Find your program</a> above for a quick suggestion, or message us on WhatsApp with the swimmer's age and comfort in water.</p>
         </details>
         <details class="faq-item reveal">
           <summary>How do I apply for admission?</summary>
@@ -383,6 +460,11 @@
   </div>
 </footer>
 
+<nav class="action-bar" aria-label="Quick actions">
+  <a href="tel:+918777292030"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M6.6 10.8a15.1 15.1 0 0 0 6.6 6.6l2.2-2.2a1 1 0 0 1 1-.25 11.4 11.4 0 0 0 3.6.57 1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1c0 1.25.2 2.45.57 3.57a1 1 0 0 1-.25 1z"/></svg>Call</a>
+  <a href="https://wa.me/918777292030?text=Hi%20Dreamer%20Swimming%20Foundation%2C%20I%27d%20like%20to%20know%20more%20about%20your%20programs." target="_blank" rel="noopener"><svg viewBox="0 0 32 32" aria-hidden="true"><path fill="currentColor" d="M16.02 4C9.4 4 4 9.37 4 15.98c0 2.11.56 4.09 1.53 5.8L4 28l6.4-1.48a11.94 11.94 0 0 0 5.62 1.4h.01c6.62 0 12.01-5.37 12.01-11.98C28.04 9.36 22.65 4 16.02 4Zm0 21.6h-.01a9.9 9.9 0 0 1-5.06-1.39l-.36-.21-3.79.87.88-3.68-.24-.38a9.85 9.85 0 0 1-1.52-5.23c0-5.46 4.46-9.9 9.94-9.9 2.66 0 5.15 1.03 7.03 2.9a9.85 9.85 0 0 1 2.9 7.02c0 5.46-4.46 9.99-9.87 9.99Zm5.44-7.42c-.3-.15-1.76-.87-2.03-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.94 1.17-.17.2-.35.22-.65.07-.3-.15-1.25-.46-2.38-1.47a8.9 8.9 0 0 1-1.65-2.04c-.17-.3-.02-.46.13-.6.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.07-.15-.67-1.6-.91-2.2-.24-.57-.49-.5-.67-.51h-.57c-.2 0-.52.07-.79.37-.27.3-1.04 1.02-1.04 2.47s1.07 2.87 1.22 3.07c.15.2 2.1 3.2 5.08 4.49.71.31 1.26.49 1.7.62.71.23 1.36.2 1.87.12.57-.08 1.76-.72 2-1.42.25-.7.25-1.29.17-1.42-.07-.13-.27-.2-.57-.35Z"/></svg>WhatsApp</a>
+  <a class="ab-main" href="admission.html">Apply now</a>
+</nav>
 <a class="whatsapp-float" href="https://wa.me/918777292030?text=Hi%20Dreamer%20Swimming%20Foundation%2C%20I%27d%20like%20to%20know%20more%20about%20your%20programs." target="_blank" rel="noopener" aria-label="Chat with us on WhatsApp"><svg viewBox="0 0 32 32" aria-hidden="true"><path fill="currentColor" d="M16.02 4C9.4 4 4 9.37 4 15.98c0 2.11.56 4.09 1.53 5.8L4 28l6.4-1.48a11.94 11.94 0 0 0 5.62 1.4h.01c6.62 0 12.01-5.37 12.01-11.98C28.04 9.36 22.65 4 16.02 4Zm0 21.6h-.01a9.9 9.9 0 0 1-5.06-1.39l-.36-.21-3.79.87.88-3.68-.24-.38a9.85 9.85 0 0 1-1.52-5.23c0-5.46 4.46-9.9 9.94-9.9 2.66 0 5.15 1.03 7.03 2.9a9.85 9.85 0 0 1 2.9 7.02c0 5.46-4.46 9.99-9.87 9.99Zm5.44-7.42c-.3-.15-1.76-.87-2.03-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.94 1.17-.17.2-.35.22-.65.07-.3-.15-1.25-.46-2.38-1.47a8.9 8.9 0 0 1-1.65-2.04c-.17-.3-.02-.46.13-.6.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.07-.15-.67-1.6-.91-2.2-.24-.57-.49-.5-.67-.51h-.57c-.2 0-.52.07-.79.37-.27.3-1.04 1.02-1.04 2.47s1.07 2.87 1.22 3.07c.15.2 2.1 3.2 5.08 4.49.71.31 1.26.49 1.7.62.71.23 1.36.2 1.87.12.57-.08 1.76-.72 2-1.42.25-.7.25-1.29.17-1.42-.07-.13-.27-.2-.57-.35Z"/></svg></a>
 
 <script src="config.js"></script>
