@@ -13,7 +13,7 @@ window.DSF = {
   // ---- Admin login + Notice Board (see README.md, "Admin login setup") ----
   firebase: {
     apiKey: "",                            // Firebase console > Project settings > Web API key
-    projectId: ""                          // Firebase console > Project settings > Project ID
+    projectId: "bdsf-premium-2026"                          // Firebase console > Project settings > Project ID
   }
 };
 
