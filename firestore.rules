@@ -1,0 +1,185 @@
+rules_version = '2';
+
+// =====================================================================
+//  Dreamer Swimming Foundation — Cloud Firestore security rules
+//  Paste into Firebase console → Firestore Database → Rules → Publish.
+//  These rules are what protect student privacy; the website only shows
+//  what these rules allow.
+//
+//  Roles
+//    Student : any signed-in Google user, for their own record only
+//    Trainer : staff/{gmail} with role "trainer" and active == true
+//    Admin   : staff/{gmail} with role "admin"   and active == true
+// =====================================================================
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---------- helpers ----------
+    function signedIn() { return request.auth != null; }
+    function verifiedEmail() {
+      return signedIn() && request.auth.token.email is string && request.auth.token.email_verified == true;
+    }
+    function myEmail() { return request.auth.token.email.lower(); }
+    function staffPath() { return /databases/$(database)/documents/staff/$(myEmail()); }
+    function isStaff() {
+      return verifiedEmail() && exists(staffPath()) && get(staffPath()).data.active == true;
+    }
+    function isAdmin() { return isStaff() && get(staffPath()).data.role == 'admin'; }
+    function isMe(uid) { return signedIn() && request.auth.uid == uid; }
+    function studentPath(uid) { return /databases/$(database)/documents/students/$(uid); }
+    function isActiveStudent() {
+      return signedIn() && exists(studentPath(request.auth.uid))
+        && get(studentPath(request.auth.uid)).data.status == 'active';
+    }
+    function phoneOk(v) { return v is string && v.matches('^[6-9][0-9]{9}$'); }
+    function shortText(d, k, max) { return !(k in d) || (d[k] is string && d[k].size() <= max); }
+
+    // Fields a student may write on their own application
+    function appKeys() {
+      return ['name', 'dob', 'gender', 'phone', 'emergency', 'program', 'batch', 'blood', 'guardian',
+              'address', 'photo', 'consent', 'guardianConsent', 'email', 'updatedAt'];
+    }
+    function validApp(d) {
+      return d.name is string && d.name.size() >= 2 && d.name.size() <= 80
+        && d.dob is string && d.dob.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+        && phoneOk(d.phone) && phoneOk(d.emergency)
+        && d.program is string && d.program.size() > 0 && d.program.size() <= 60
+        && d.photo is string && d.photo.size() > 100 && d.photo.size() <= 80000
+        && d.consent == true
+        && shortText(d, 'gender', 30) && shortText(d, 'batch', 40) && shortText(d, 'blood', 5)
+        && shortText(d, 'guardian', 80) && shortText(d, 'address', 300) && shortText(d, 'email', 120);
+    }
+
+    // ---------- staff (trainers & admins), document id = lowercase Gmail ----------
+    match /staff/{mail} {
+      allow get: if isStaff() || (verifiedEmail() && myEmail() == mail);
+      allow list: if isStaff();
+      allow create, update: if isAdmin()
+        && request.resource.data.role in ['admin', 'trainer']
+        && request.resource.data.active is bool
+        && request.resource.data.name is string;
+      allow delete: if isAdmin() && mail != myEmail();
+    }
+
+    // ---------- students: full record, only the student and admins ----------
+    match /students/{uid} {
+      allow get: if isMe(uid) || isAdmin();
+      allow list: if isAdmin();
+
+      allow create: if isMe(uid)
+        && request.resource.data.keys().hasOnly(appKeys().concat(['status', 'createdAt']))
+        && request.resource.data.status == 'applied'
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time
+        && validApp(request.resource.data);
+
+      allow update: if isAdmin()
+        // student edits the application before it is confirmed
+        || (isMe(uid)
+            && resource.data.status in ['applied', 'fee_submitted', 'rejected']
+            && request.resource.data.status in ['applied', 'fee_submitted']
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(appKeys().concat(['status']))
+            && request.resource.data.updatedAt == request.time
+            && validApp(request.resource.data))
+        // student asks for their data to be deleted
+        || (isMe(uid)
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['deleteRequested', 'deleteRequestedAt'])
+            && request.resource.data.deleteRequested == true
+            && request.resource.data.deleteRequestedAt == request.time);
+
+      allow delete: if isAdmin();
+    }
+
+    // ---------- roster: minimal list trainers need (no contact details) ----------
+    match /roster/{uid} {
+      allow read: if isStaff();
+      allow write: if isAdmin();
+    }
+
+    // ---------- payments ----------
+    match /payments/{id} {
+      allow get, list: if isAdmin() || (signedIn() && resource.data.uid == request.auth.uid);
+      allow create: if signedIn()
+        && exists(studentPath(request.auth.uid))
+        && request.resource.data.keys().hasOnly(['uid', 'name', 'studentId', 'purpose', 'amount', 'method', 'utr', 'status', 'createdAt'])
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.status == 'pending'
+        && request.resource.data.amount is int
+        && request.resource.data.amount > 0 && request.resource.data.amount <= 100000
+        && request.resource.data.method in ['upi', 'cash']
+        && request.resource.data.purpose is string && request.resource.data.purpose.size() <= 60
+        && (request.resource.data.method == 'cash'
+            || (request.resource.data.utr is string && request.resource.data.utr.matches('^[A-Za-z0-9]{6,30}$')))
+        && request.resource.data.createdAt == request.time;
+      allow update, delete: if isAdmin();
+    }
+
+    // ---------- attendance: one document per student per day, id = uid_YYYY-MM-DD ----------
+    function kiosk() { return get(/databases/$(database)/documents/kiosk/current).data; }
+    // Pool: 22.7258249, 88.476228. The box is about ±440 m.
+    function atPool(d) {
+      return d.lat is number && d.lng is number
+        && math.abs(d.lat - 22.7258) < 0.004 && math.abs(d.lng - 88.4762) < 0.004;
+    }
+    match /attendance/{id} {
+      allow get: if isStaff() || (signedIn() && id.matches(request.auth.uid + '_[0-9]{4}-[0-9]{2}-[0-9]{2}'));
+      allow list: if isStaff() || (signedIn() && resource.data.uid == request.auth.uid);
+
+      allow create: if
+        // trainer or admin marks a student present by hand
+        (isStaff()
+          && request.resource.data.method == 'manual'
+          && request.resource.data.day is string
+          && id == request.resource.data.uid + '_' + request.resource.data.day
+          && request.resource.data.at == request.time)
+        // student scans the live QR code at the pool
+        || (isActiveStudent()
+          && request.resource.data.keys().hasOnly(['uid', 'name', 'studentId', 'program', 'batch', 'day', 'code', 'at', 'lat', 'lng', 'method'])
+          && request.resource.data.uid == request.auth.uid
+          && request.resource.data.method == 'qr'
+          && request.resource.data.code == kiosk().code
+          && request.resource.data.day == kiosk().day
+          && request.time < kiosk().exp
+          && id == request.auth.uid + '_' + kiosk().day
+          && request.resource.data.at == request.time
+          && atPool(request.resource.data));
+
+      allow update, delete: if isAdmin();
+    }
+
+    // ---------- live check-in code shown on the trainer's screen ----------
+    match /kiosk/{id} {
+      allow read, write: if isStaff();
+    }
+
+    // ---------- certificates ----------
+    match /certificates/{no} {
+      allow get, list: if isAdmin() || (signedIn() && resource.data.uid == request.auth.uid);
+      allow write: if isAdmin();
+    }
+    // Public verification copy: name, title, date and status only
+    match /cert_public/{no} {
+      allow get: if true;
+      allow list: if false;
+      allow write: if isAdmin();
+    }
+
+    // ---------- notices ----------
+    match /notices/{id} {
+      allow read: if true;
+      allow create: if isStaff()
+        && request.resource.data.title is string && request.resource.data.title.size() <= 120
+        && request.resource.data.text is string && request.resource.data.text.size() <= 2000;
+      allow update, delete: if isStaff();
+    }
+
+    // ---------- settings & counters ----------
+    match /settings/{id} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+    }
+    match /meta/{id} {
+      allow read, write: if isAdmin();
+    }
+  }
+}

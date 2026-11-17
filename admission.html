@@ -41,7 +41,7 @@
       <a href="fees.html">Pay Fees</a>
     </nav>
     <div class="nav-cta">
-      <a class="btn btn-ghost" href="https://www.google.com/maps/place/Dreamer+Swimming+Foundation,+Barrackpore+-+Barasat+Rd,+Singha+Garh+Nabapally,+Sarojinipally,+Chkravartipara,+Barasat,+Kolkata,+West+Bengal+700126/@22.7258249,88.476228,15z/data=!4m6!3m5!1s0x39f898a6d2b04e33:0xab84228f4e79c736!8m2!3d22.7258249!4d88.476228!16s%2Fg%2F11g8vmr0lm" target="_blank" rel="noopener">Directions</a>
+      <a class="btn btn-ghost" href="student.html">Student login</a>
       <a class="btn btn-solid" href="admission.html">Apply now</a>
     </div>
     <button class="nav-toggle" id="navToggle" aria-expanded="false" aria-controls="mobileMenu" aria-label="Open menu"><span></span><span></span><span></span></button>
@@ -55,7 +55,7 @@
       <a href="magazine.html">Magazine</a>
       <a href="fees.html">Pay Fees</a>
     <a class="btn btn-solid" href="admission.html">Apply now</a>
-    <a class="btn btn-outline" href="tel:+918777292030">Call 87772 92030</a>
+    <a class="btn btn-outline" href="student.html">Student login</a>
   </div>
 </header>
 
@@ -64,82 +64,65 @@
     <div class="container">
       <p class="eyebrow eyebrow-light">Dreamer Swimming Foundation</p>
       <h1 class="page-title">Admission</h1>
-      <p class="page-sub">Apply in two minutes. Your details go straight to our team on WhatsApp.</p>
+      <p class="page-sub">Apply online in about five minutes. Your application, payments and ID card stay together in your student account.</p>
     </div>
   </section>
 
   <section class="section">
     <div class="container">
-      <ol class="steps">
-        <li class="step"><b>01</b><p>Fill in the form below. Nothing is stored on this website.</p></li>
-        <li class="step"><b>02</b><p>Tap <em>Send on WhatsApp</em>. WhatsApp opens with your details filled in. Attach the student's passport-size photo in the chat.</p></li>
-        <li class="step"><b>03</b><p>Our team confirms the batch and fee. Pay on the <a href="fees.html">Pay Fees</a> page, and the Student ID card is issued once admission is complete.</p></li>
-      </ol>
-
-      <noscript><p class="form-error">This form needs JavaScript. Please call or WhatsApp us on +91 87772 92030.</p></noscript>
-      <form class="form-card" id="admForm" novalidate>
-        <div class="form-grid">
-          <div class="field full"><label for="f_name">Student's full name *</label><input id="f_name" name="name" required autocomplete="name"></div>
-          <div class="field"><label for="f_dob">Date of birth * <span class="hint">(swimmer must be 3+)</span></label><input id="f_dob" type="date" required min="1930-01-01"></div>
-          <div class="field"><label for="f_gender">Gender</label>
-            <select id="f_gender"><option value="">Select</option><option>Male</option><option>Female</option><option>Other</option></select></div>
-          <div class="field"><label for="f_guardian">Parent / guardian name</label><input id="f_guardian" autocomplete="off"></div>
-          <div class="field"><label for="f_phone">Phone (WhatsApp) *</label><input id="f_phone" type="tel" inputmode="numeric" maxlength="14" autocomplete="tel" placeholder="10-digit mobile number" required></div>
-          <div class="field"><label for="f_program">Program *</label><select id="f_program" required><option value="">Select a program</option><option>Novice Training</option><option>Semi-Advance Training</option><option>Advance Training</option><option>Competitive Swimmer Training</option><option>First Aid Training</option><option>Lifesaving & Lifeguard Training</option></select></div>
-          <div class="field"><label for="f_batch">Preferred batch</label>
-            <select id="f_batch"><option value="">No preference</option><optgroup label="Morning"><option>Morning 6:00 AM</option><option>Morning 6:40 AM</option><option>Morning 7:20 AM</option></optgroup><optgroup label="Evening"><option>Evening 4:00 PM</option><option>Evening 4:40 PM</option><option>Evening 5:20 PM</option></optgroup><optgroup label="Night"><option>Night 8:00 PM</option></optgroup></select></div>
-          <div class="field"><label for="f_blood">Blood group</label>
-            <select id="f_blood"><option value="">Select</option><option>A+</option><option>A−</option><option>B+</option><option>B−</option><option>AB+</option><option>AB−</option><option>O+</option><option>O−</option></select></div>
-          <div class="field"><label for="f_emerg">Emergency contact number</label><input id="f_emerg" type="tel" inputmode="tel"></div>
-          <div class="field full"><label for="f_addr">Address</label><textarea id="f_addr" rows="2"></textarea></div>
-          <div class="field full"><label for="f_photo">Student photo (preview only)</label>
-            <input id="f_photo" type="file" accept="image/*">
-            <img id="photoPrev" class="photo-prev" alt="Selected photo preview" hidden>
-            <p class="form-note">For privacy this website cannot receive files. After tapping the WhatsApp button, attach this photo in the chat.</p></div>
-        </div>
-        <p class="form-error" id="admError" role="alert" hidden></p>
-        <div class="cta-row"><button class="btn btn-coral" type="submit">Send on WhatsApp</button></div>
-      </form>
-
-      <div class="pay-box">
-        <h3>Fee payment</h3>
-        <p>Once our team confirms your batch and fee, pay by UPI and send the confirmation in one step.</p>
-        <div class="cta-row"><a class="btn btn-solid" href="fees.html">Pay fees</a></div>
+      <ol class="steps steps-5"><li class="step"><b>01</b><h3>Sign in with Google</h3><p>Use the swimmer's or parent's Google account. It keeps the application, payments and ID card in one place.</p></li><li class="step"><b>02</b><h3>Fill in the application</h3><p>Swimmer's details, preferred program and batch, emergency contact and a passport-size photo.</p></li><li class="step"><b>03</b><h3>Pay the admission fee</h3><p>By UPI, or in cash at the pool. For UPI, enter the transaction ID so our team can match it.</p></li><li class="step"><b>04</b><h3>Admission confirmed</h3><p>Our team checks the application and payment, then issues your Student ID.</p></li><li class="step"><b>05</b><h3>Download your ID card</h3><p>Sign in any time to download the ID card, check attendance and see notices.</p></li></ol>
+      <div class="cta-row">
+        <a class="btn btn-coral" id="applyCta" href="student.html">Sign in with Google to apply</a>
+        <a class="btn btn-outline" href="https://wa.me/918777292030?text=Hi%20Dreamer%20Swimming%20Foundation%2C%20I%27d%20like%20to%20know%20more%20about%20your%20programs." target="_blank" rel="noopener">Need help? WhatsApp us</a>
       </div>
+      <p class="form-note">Applying for a child under 18? A parent or guardian should apply and give consent. See how we handle your data in our <a href="privacy.html">Privacy policy</a>.</p>
     </div>
   </section>
 
 </main>
 
+<div class="lane-rope footer-rope" aria-hidden="true"></div>
 <footer class="footer">
-  <div class="container footer-grid">
-    <div>
+  <div class="container footer-top">
+    <div class="footer-brand">
       <a class="brand brand-footer" href="index.html">
         <span class="brand-badge"><img class="brand-mark" src="assets/dsf-logo.png" alt="" width="240" height="145"></span>
         <span class="brand-text"><span class="brand-name">Dreamer Swimming Foundation</span></span>
       </a>
-      <p class="footer-tag">Barasat's swimming institute for every age and comfort level.</p>
+      <p class="footer-tag">Barasat's swimming institute for every age and comfort level. Safety first, always.</p>
+      <div class="footer-cta">
+        <a class="btn btn-coral btn-sm" href="admission.html">Apply now</a>
+        <a class="btn btn-glass btn-sm" href="student.html">Student login</a>
+      </div>
     </div>
-    <nav class="footer-links" aria-label="Footer">
+    <nav class="footer-col" aria-label="Explore">
+      <h2>Explore</h2>
       <a href="index.html#programs">Programs</a>
-      <a href="index.html#why-us">Why Us</a>
-      <a href="index.html#schedule">Batches</a>
+      <a href="index.html#why-us">Why choose us</a>
+      <a href="index.html#schedule">Batch timings</a>
       <a href="index.html#faq">FAQ</a>
-      <a href="notices.html">Notices</a>
       <a href="magazine.html">Magazine</a>
-      <a href="fees.html">Pay Fees</a>
-      <a href="admission.html">Admission</a>
-      <a href="index.html#visit">Visit</a>
     </nav>
-    <div class="footer-contact">
+    <nav class="footer-col" aria-label="Students">
+      <h2>Students</h2>
+      <a href="admission.html">Admission</a>
+      <a href="student.html">Student portal</a>
+      <a href="fees.html">Pay fees</a>
+      <a href="notices.html">Notice board</a>
+      <a href="verify.html">Verify a certificate</a>
+    </nav>
+    <div class="footer-col footer-contact">
+      <h2>Contact</h2>
       <a href="tel:+918777292030">+91 87772 92030</a>
       <a class="footer-phone-alt" href="tel:+919432840524">+91 94328 40524</a>
-      <p>Barrackpore – Barasat Rd, Barasat, Kolkata, West Bengal 700126</p>
+      <a href="https://wa.me/918777292030?text=Hi%20Dreamer%20Swimming%20Foundation%2C%20I%27d%20like%20to%20know%20more%20about%20your%20programs." target="_blank" rel="noopener">WhatsApp us</a>
+      <a href="https://www.google.com/maps/place/Dreamer+Swimming+Foundation,+Barrackpore+-+Barasat+Rd,+Singha+Garh+Nabapally,+Sarojinipally,+Chkravartipara,+Barasat,+Kolkata,+West+Bengal+700126/@22.7258249,88.476228,15z/data=!4m6!3m5!1s0x39f898a6d2b04e33:0xab84228f4e79c736!8m2!3d22.7258249!4d88.476228!16s%2Fg%2F11g8vmr0lm" target="_blank" rel="noopener">Get directions</a>
+      <p>Barrackpore – Barasat Rd, Barasat,<br>Kolkata, West Bengal 700126</p>
     </div>
   </div>
   <div class="container footer-bottom">
-    <span>© <span id="year"></span> Dreamer Swimming Foundation</span>
-    <span class="staff-links"><a class="staff-link" href="admin.html">Admin login</a><a class="staff-link" href="idcard.html">ID cards</a></span>
+    <p>© <span id="year"></span> Dreamer Swimming Foundation · <a href="privacy.html">Privacy policy</a></p>
+    <a class="staff-login" href="admin.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a5 5 0 0 0-5 5v3H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2h-1V7a5 5 0 0 0-5-5Zm-3 8V7a3 3 0 0 1 6 0v3H9Z"/></svg>Staff login</a>
   </div>
 </footer>
 

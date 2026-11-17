@@ -3,11 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Admin — Dreamer Swimming Foundation</title>
-<meta name="description" content="Staff login.">
+<title>Staff portal — Dreamer Swimming Foundation</title>
+<meta name="description" content="Staff portal.">
 <meta name="robots" content="noindex,nofollow">
-<meta property="og:title" content="Admin — Dreamer Swimming Foundation">
-<meta property="og:description" content="Staff login.">
+<meta property="og:title" content="Staff portal — Dreamer Swimming Foundation">
+<meta property="og:description" content="Staff portal.">
 <meta property="og:type" content="website">
 <meta property="og:image" content="https://raja2025-tech.github.io/Dreamer-Swimming-Foundation/assets/og.png">
 <meta property="og:image:width" content="1200">
@@ -42,7 +42,7 @@
       <a href="fees.html">Pay Fees</a>
     </nav>
     <div class="nav-cta">
-      <a class="btn btn-ghost" href="https://www.google.com/maps/place/Dreamer+Swimming+Foundation,+Barrackpore+-+Barasat+Rd,+Singha+Garh+Nabapally,+Sarojinipally,+Chkravartipara,+Barasat,+Kolkata,+West+Bengal+700126/@22.7258249,88.476228,15z/data=!4m6!3m5!1s0x39f898a6d2b04e33:0xab84228f4e79c736!8m2!3d22.7258249!4d88.476228!16s%2Fg%2F11g8vmr0lm" target="_blank" rel="noopener">Directions</a>
+      <a class="btn btn-ghost" href="student.html">Student login</a>
       <a class="btn btn-solid" href="admission.html">Apply now</a>
     </div>
     <button class="nav-toggle" id="navToggle" aria-expanded="false" aria-controls="mobileMenu" aria-label="Open menu"><span></span><span></span><span></span></button>
@@ -56,7 +56,7 @@
       <a href="magazine.html">Magazine</a>
       <a href="fees.html">Pay Fees</a>
     <a class="btn btn-solid" href="admission.html">Apply now</a>
-    <a class="btn btn-outline" href="tel:+918777292030">Call 87772 92030</a>
+    <a class="btn btn-outline" href="student.html">Student login</a>
   </div>
 </header>
 
@@ -64,77 +64,60 @@
   <section class="page-header">
     <div class="container">
       <p class="eyebrow eyebrow-light">Dreamer Swimming Foundation</p>
-      <h1 class="page-title">Admin</h1>
-      <p class="page-sub">Staff login for posting notices to the Notice Board.</p>
+      <h1 class="page-title">Staff portal</h1>
+      <p class="page-sub">Admissions, students, trainers, certificates and attendance.</p>
     </div>
   </section>
 
-  <section class="section">
-    <div class="container">
-      <div class="form-card" id="adminSetup" hidden>
-        <h3>Admin login is not switched on yet</h3>
-        <p class="form-note">Add your Firebase <b>apiKey</b> and <b>projectId</b> in <code>config.js</code>. The steps are in README.md.</p>
-      </div>
-
-      <form class="form-card" id="loginForm" hidden novalidate>
-        <h3>Sign in</h3>
-        <div class="form-grid">
-          <div class="field full"><label for="a_email">Email</label><input id="a_email" type="email" autocomplete="username" required></div>
-          <div class="field full"><label for="a_pass">Password</label><input id="a_pass" type="password" autocomplete="current-password" required></div>
-        </div>
-        <p class="form-error" id="loginError" role="alert" hidden></p>
-        <div class="cta-row"><button class="btn btn-solid" type="submit">Sign in</button></div>
-      </form>
-
-      <div id="adminPanel" hidden>
-        <form class="form-card" id="noticeForm" novalidate>
-          <div class="admin-head"><h3>Post a notice</h3><button type="button" class="btn btn-outline btn-sm" id="logoutBtn">Sign out</button></div>
-          <div class="form-grid">
-            <div class="field full"><label for="n_title">Title *</label><input id="n_title" maxlength="120" required></div>
-            <div class="field full"><label for="n_text">Message *</label><textarea id="n_text" rows="4" maxlength="2000" required></textarea></div>
-            <div class="field full check"><label><input type="checkbox" id="n_imp"> Mark as important</label></div>
-          </div>
-          <p class="form-error" id="noticeError" role="alert" hidden></p>
-          <p class="form-ok" id="noticeOk" role="status" hidden></p>
-          <div class="cta-row"><button class="btn btn-coral" type="submit">Post notice</button><a class="btn btn-outline" href="notices.html">View Notice Board</a></div>
-        </form>
-        <h3 class="admin-sub">Posted notices</h3>
-        <div class="notices-admin" id="adminList"></div>
-      </div>
-    </div>
+  <section class="section portal-section">
+    <div class="container"><div id="app" class="portal" data-portal="admin"><p class="form-note">Loading…</p></div>
+    <noscript><p class="form-error">This page needs JavaScript.</p></noscript></div>
   </section>
 
 </main>
 
+<div class="lane-rope footer-rope" aria-hidden="true"></div>
 <footer class="footer">
-  <div class="container footer-grid">
-    <div>
+  <div class="container footer-top">
+    <div class="footer-brand">
       <a class="brand brand-footer" href="index.html">
         <span class="brand-badge"><img class="brand-mark" src="assets/dsf-logo.png" alt="" width="240" height="145"></span>
         <span class="brand-text"><span class="brand-name">Dreamer Swimming Foundation</span></span>
       </a>
-      <p class="footer-tag">Barasat's swimming institute for every age and comfort level.</p>
+      <p class="footer-tag">Barasat's swimming institute for every age and comfort level. Safety first, always.</p>
+      <div class="footer-cta">
+        <a class="btn btn-coral btn-sm" href="admission.html">Apply now</a>
+        <a class="btn btn-glass btn-sm" href="student.html">Student login</a>
+      </div>
     </div>
-    <nav class="footer-links" aria-label="Footer">
+    <nav class="footer-col" aria-label="Explore">
+      <h2>Explore</h2>
       <a href="index.html#programs">Programs</a>
-      <a href="index.html#why-us">Why Us</a>
-      <a href="index.html#schedule">Batches</a>
+      <a href="index.html#why-us">Why choose us</a>
+      <a href="index.html#schedule">Batch timings</a>
       <a href="index.html#faq">FAQ</a>
-      <a href="notices.html">Notices</a>
       <a href="magazine.html">Magazine</a>
-      <a href="fees.html">Pay Fees</a>
-      <a href="admission.html">Admission</a>
-      <a href="index.html#visit">Visit</a>
     </nav>
-    <div class="footer-contact">
+    <nav class="footer-col" aria-label="Students">
+      <h2>Students</h2>
+      <a href="admission.html">Admission</a>
+      <a href="student.html">Student portal</a>
+      <a href="fees.html">Pay fees</a>
+      <a href="notices.html">Notice board</a>
+      <a href="verify.html">Verify a certificate</a>
+    </nav>
+    <div class="footer-col footer-contact">
+      <h2>Contact</h2>
       <a href="tel:+918777292030">+91 87772 92030</a>
       <a class="footer-phone-alt" href="tel:+919432840524">+91 94328 40524</a>
-      <p>Barrackpore – Barasat Rd, Barasat, Kolkata, West Bengal 700126</p>
+      <a href="https://wa.me/918777292030?text=Hi%20Dreamer%20Swimming%20Foundation%2C%20I%27d%20like%20to%20know%20more%20about%20your%20programs." target="_blank" rel="noopener">WhatsApp us</a>
+      <a href="https://www.google.com/maps/place/Dreamer+Swimming+Foundation,+Barrackpore+-+Barasat+Rd,+Singha+Garh+Nabapally,+Sarojinipally,+Chkravartipara,+Barasat,+Kolkata,+West+Bengal+700126/@22.7258249,88.476228,15z/data=!4m6!3m5!1s0x39f898a6d2b04e33:0xab84228f4e79c736!8m2!3d22.7258249!4d88.476228!16s%2Fg%2F11g8vmr0lm" target="_blank" rel="noopener">Get directions</a>
+      <p>Barrackpore – Barasat Rd, Barasat,<br>Kolkata, West Bengal 700126</p>
     </div>
   </div>
   <div class="container footer-bottom">
-    <span>© <span id="year"></span> Dreamer Swimming Foundation</span>
-    <span class="staff-links"><a class="staff-link" href="admin.html">Admin login</a><a class="staff-link" href="idcard.html">ID cards</a></span>
+    <p>© <span id="year"></span> Dreamer Swimming Foundation · <a href="privacy.html">Privacy policy</a></p>
+    <a class="staff-login" href="admin.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a5 5 0 0 0-5 5v3H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2h-1V7a5 5 0 0 0-5-5Zm-3 8V7a3 3 0 0 1 6 0v3H9Z"/></svg>Staff login</a>
   </div>
 </footer>
 
@@ -147,5 +130,6 @@
 
 <script src="config.js"></script>
 <script src="script.js"></script>
+<script type="module" src="portal.js"></script>
 </body>
 </html>

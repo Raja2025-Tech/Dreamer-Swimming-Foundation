@@ -14,7 +14,12 @@ window.DSF = {
   firebase: {
     apiKey: "AIzaSyClxgdlZ8LI4wV3Rw19DxOhC9Au4NoT-SQ",                            // Firebase console > Project settings > Web API key
     projectId: "bdsf-premium-2026"                          // Firebase console > Project settings > Project ID
-  }
+  },
+
+  // ---- Student & staff portal ----
+  // Keep false until firestore.rules is published in Firebase (README.md, "One-time Firebase setup").
+  // While false, the portal pages show "opening soon" and collect no personal data.
+  portalReady: false
 };
 
 // Shown on the Notice Board only until admin login is set up.
