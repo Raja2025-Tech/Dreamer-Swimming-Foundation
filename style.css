@@ -331,8 +331,8 @@ p{ margin:0; }
 .footer-bottom{ padding-top:22px; font-size:0.8rem; color:rgba(255,255,255,0.45); }
 
 /* ---------- reveal on scroll ---------- */
-.reveal{ opacity:0; transform:translateY(22px); transition:opacity .7s ease, transform .7s ease; }
-.reveal.is-visible{ opacity:1; transform:translateY(0); }
+.js .reveal{ opacity:0; transform:translateY(22px); transition:opacity .7s ease, transform .7s ease; }
+.js .reveal.is-visible{ opacity:1; transform:translateY(0); }
 
 /* ============================================
    RESPONSIVE
@@ -517,3 +517,34 @@ button.btn:disabled{ opacity:0.6; cursor:default; transform:none; }
   .qr-wrap{ margin:0 auto; } .pay-side{ align-items:stretch; } .pay-side .btn{ width:100%; }
   .brand-name{ font-size:0.88rem; }
 }
+
+/* ============================================
+   v4: WebGL pool water in the hero
+   ============================================ */
+.water{ position:absolute; inset:0; width:100%; height:100%; display:none; }
+.has-water .water{ display:block; }
+.has-water .caustics{ display:none; }
+.has-water .hero-vignette{
+  background:
+    linear-gradient(180deg, rgba(4,34,46,0.50) 0%, rgba(4,34,46,0.12) 22%, rgba(4,34,46,0.30) 55%, rgba(4,34,46,0.86) 100%),
+    linear-gradient(90deg, rgba(4,34,46,0.55) 0%, rgba(4,34,46,0.20) 60%, rgba(4,34,46,0) 100%);
+}
+.has-water .hero-title, .has-water .hero-sub{ text-shadow:0 2px 18px rgba(2,22,32,0.55); }
+.has-water .stat-card{ background:rgba(4,34,46,0.42); }
+.form-note{ color:rgba(6,34,43,0.62); }
+
+/* v4: comfortable tap targets on touch screens */
+.footer-links{ gap:2px; }
+.footer-links a{ padding:8px 0; }
+.footer-contact a{ padding:6px 0; }
+.staff-link{ padding:10px 0; display:inline-block; }
+.visit-phone{ padding:6px 0; }
+.visit-phone-alt{ padding:8px 0; margin-top:0; }
+.faq-item p a, .step p a{ padding:6px 0; display:inline-block; }
+
+/* v4: tablets use the hamburger menu too (links did not fit below 1024px) */
+@media (max-width:1023px){
+  .nav-links, .nav-cta{ display:none; }
+  .nav-toggle{ display:flex; }
+}
+@media (max-width:380px){ .brand-name{ font-size:0.8rem; } .brand-mark{ width:34px; } }
