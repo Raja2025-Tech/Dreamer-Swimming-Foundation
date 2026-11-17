@@ -19,7 +19,7 @@ window.DSF = {
   // ---- Student & staff portal ----
   // Keep false until firestore.rules is published in Firebase (README.md, "One-time Firebase setup").
   // While false, the portal pages show "opening soon" and collect no personal data.
-  portalReady: false
+  portalReady: true
 };
 
 // Shown on the Notice Board only until admin login is set up.
