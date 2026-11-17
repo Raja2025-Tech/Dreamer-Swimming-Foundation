@@ -7,7 +7,7 @@ window.DSF = {
 
   // ---- Fee payment (Pay Fees page) ----
   // Put your UPI ID here to switch on the QR code and "Open UPI app" button.
-  upiId: "",                               // e.g. "dreamerswimming@okhdfcbank"
+  upiId: "9748792539@upi",                               // e.g. "dreamerswimming@okhdfcbank"
   upiName: "Dreamer Swimming Foundation",  // name shown to the payer
 
   // ---- Admin login + Notice Board (see README.md, "Admin login setup") ----
