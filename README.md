@@ -47,8 +47,18 @@ Plain HTML/CSS/JS on GitHub Pages, with a student and staff portal on Google Fir
    - **Settings**: enter the admission and monthly fees.
    - **Trainers**: add each trainer's Gmail address.
 10. **Restrict the API key** (recommended): Google Cloud Console → APIs & Services → Credentials →
-    "Browser key (auto created by Firebase)" → Application restrictions → **Websites** →
-    add `https://raja2025-tech.github.io/*` → Save.
+    "Browser key (auto created by Firebase)" → Application restrictions → **Websites** → add **both**:
+    - `https://raja2025-tech.github.io/*`
+    - `https://YOUR-PROJECT-ID.firebaseapp.com/*` (Google sign-in runs on this page)
+
+    Then Save and wait about 5 minutes. If only the first one is listed, the sign-in pop-up says
+    "The requested action is invalid".
+
+### If sign-in shows "The requested action is invalid"
+Check these in order:
+1. API key website restrictions include `https://YOUR-PROJECT-ID.firebaseapp.com/*` (step 10).
+2. Authentication → Sign-in method → **Google** is **Enabled**, and a **support email** is selected.
+3. The `apiKey` and `projectId` in `config.js` come from the **same** project (Project settings → General).
 
 ### Quick test after setup
 - Open `student.html` in a private window, sign in with a different Gmail, apply, and submit a test fee.
