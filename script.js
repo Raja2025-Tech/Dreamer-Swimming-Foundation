@@ -97,40 +97,6 @@ function noticeCard(n) {
     .catch(function () { render([], "Notices could not be loaded. Please check your connection and reload the page."); });
 })();
 
-// ---------- Magazine ----------
-(function () {
-  var grid = $id("magGrid"); if (!grid) return;
-  var items = window.MAGAZINE || [], empty = $id("magEmpty"), filters = $id("magFilters");
-  var lb = $id("lightbox"), lbImg = $id("lbImg"), lbCap = $id("lbCap");
-  if (!items.length) { empty.hidden = false; filters.hidden = true; return; }
-  var cats = ["All"].concat(items.map(function (i) { return i.category; }).filter(function (v, i, a) { return v && a.indexOf(v) === i; }));
-  var active = "All";
-  function render() {
-    grid.innerHTML = "";
-    items.filter(function (i) { return active === "All" || i.category === active; }).forEach(function (i) {
-      var b = document.createElement("button"); b.type = "button"; b.className = "mag-item";
-      var img = document.createElement("img"); img.src = i.src; img.alt = i.caption || ""; img.loading = "lazy"; b.appendChild(img);
-      if (i.caption) { var c = document.createElement("span"); c.className = "mag-cap"; c.textContent = i.caption; b.appendChild(c); }
-      b.addEventListener("click", function () { lbImg.src = i.src; lbImg.alt = i.caption || ""; lbCap.textContent = i.caption || ""; lb.classList.add("open"); });
-      grid.appendChild(b);
-    });
-  }
-  cats.forEach(function (c) {
-    var b = document.createElement("button"); b.type = "button"; b.className = "chip" + (c === active ? " active" : ""); b.textContent = c;
-    b.addEventListener("click", function () {
-      active = c;
-      Array.prototype.forEach.call(filters.children, function (x) { x.classList.toggle("active", x.textContent === c); });
-      render();
-    });
-    filters.appendChild(b);
-  });
-  function close() { lb.classList.remove("open"); }
-  $id("lbClose").addEventListener("click", close);
-  lb.addEventListener("click", function (e) { if (e.target === lb) close(); });
-  document.addEventListener("keydown", function (e) { if (e.key === "Escape") close(); });
-  render();
-})();
-
 // ---------- Admission page: carry a chosen program through to the portal ----------
 (function () {
   var cta = $id("applyCta"); if (!cta) return;

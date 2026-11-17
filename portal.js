@@ -17,6 +17,8 @@ const LEVELS = PROGRAMS.slice(0, 4);
 const BATCHES = ["Morning 6:00 AM", "Morning 6:40 AM", "Morning 7:20 AM", "Evening 4:00 PM", "Evening 4:40 PM",
   "Evening 5:20 PM", "Night 8:00 PM"];
 const BLOOD = ["A+", "A−", "B+", "B−", "AB+", "AB−", "O+", "O−"];
+const MAG_CATS = ["Programs", "Competitions", "Events", "Magazine"];
+const JSPDF_URL = "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js";
 const CERT_KINDS = {
   level: { label: "Level completion", heading: "Certificate of Completion" },
   firstaid: { label: "First Aid Training", heading: "Certificate of Completion", title: "First Aid Training" },
@@ -137,6 +139,7 @@ const badge = (status) => {
 // ------------------------------------------------------------------ boot
 async function boot() {
   if (!root) return;
+  if (KIND === "magazine" && (!FBC.apiKey || !FBC.projectId || CFG.portalReady !== true)) return magazinePage(null);
   // The portal stays closed until the admin has published firestore.rules and set portalReady: true in config.js,
   // so no personal data is collected before the privacy rules are in place.
   if (!FBC.apiKey || !FBC.projectId || CFG.portalReady !== true) {
@@ -153,6 +156,7 @@ async function boot() {
   const app = F.initializeApp({ apiKey: FBC.apiKey, projectId: FBC.projectId, authDomain: FBC.authDomain || FBC.projectId + ".firebaseapp.com" });
   db = F.getFirestore(app);
   if (KIND === "verify") return verifyPage();
+  if (KIND === "magazine") return magazinePage(db);
   auth = F.getAuth(app);
   F.onAuthStateChanged(auth, async (u) => {
     user = u;
@@ -193,12 +197,17 @@ function signInView() {
   };
 }
 
-function accountBar(extra = "") {
-  return `<div class="account-bar"><span class="acc-who">${user.photoURL ? `<img src="${esc(user.photoURL)}" alt="" referrerpolicy="no-referrer">` : ""}<span><b>${esc(user.displayName || "Signed in")}</b><small>${esc(user.email || "")}</small></span></span>
+function accountBar(extra = "", name = null, isNew = false) {
+  const full = name || user.displayName || "";
+  const first = full.trim().split(/\s+/)[0] || "";
+  const hello = first ? `${isNew ? "Welcome" : "Welcome back"}, ${first}` : "Welcome";
+  const key = "dsf_welcomed_" + user.uid;
+  try { if (!sessionStorage.getItem(key)) { sessionStorage.setItem(key, "1"); setTimeout(() => toast(hello + "!"), 50); } } catch (e) { /* private mode */ }
+  return `<div class="account-bar"><span class="acc-who">${user.photoURL ? `<img src="${esc(user.photoURL)}" alt="" referrerpolicy="no-referrer">` : ""}<span><b class="hello">${esc(hello)}</b><small>${esc(user.email || "")}</small></span></span>
     <span class="acc-actions">${extra}<button type="button" class="btn btn-outline btn-sm" data-signout>Sign out</button></span></div>`;
 }
 function wireSignOut() {
-  $$("[data-signout]").forEach((b) => (b.onclick = async () => { await F.signOut(auth); if (location.search.includes("from=staff")) history.replaceState(null, "", location.pathname); }));
+  $$("[data-signout]").forEach((b) => (b.onclick = async () => { try { sessionStorage.removeItem("dsf_welcomed_" + user.uid); } catch (e) { /* ignore */ } await F.signOut(auth); if (location.search.includes("from=staff")) history.replaceState(null, "", location.pathname); }));
 }
 
 async function getStaff() {
@@ -254,7 +263,7 @@ function renderStudent(view) {
   else if (me.status === "fee_submitted") body = waitingStep();
   else if (me.status === "rejected") body = rejectedStep();
   else body = dashboard();
-  root.innerHTML = accountBar(staffLink) + notStaffNote + body;
+  root.innerHTML = accountBar(staffLink, me ? me.name : null, !me) + notStaffNote + body;
   wireSignOut();
   if (view === "edit" || !me) wireApplication();
   else if (me.status === "applied") wireFeeForm("Admission fee", true);
@@ -470,7 +479,7 @@ function dashboard() {
   const me = S.me;
   return `
     ${me.status === "inactive" ? `<p class="callout warn">Your membership is currently inactive. Contact the office to reactivate it.</p>` : ""}
-    <nav class="jump" aria-label="Sections"><a href="#d-today">Today</a><a href="#d-att">Attendance</a><a href="#d-notices">Notices</a><a href="#d-certs">Certificates</a><a href="#payments">Payments</a><a href="#d-privacy">My data</a></nav>
+    <nav class="jump" aria-label="Sections"><a href="#d-today">Today</a><a href="#d-att">Attendance</a><a href="#d-notices">Notices</a><a href="#d-certs">Certificates</a><a href="#payments">Payments</a><a href="#d-profile">My profile</a><a href="#d-privacy">My data</a></nav>
     <section class="id-hero">
       <div class="id-person">${safePhoto(me.photo) ? `<img src="${safePhoto(me.photo)}" alt="" class="avatar-lg">` : ""}
         <div><p class="eyebrow">Student ID</p><h2>${esc(me.studentId || "—")}</h2><p><b>${esc(me.name)}</b> · ${esc(me.program)}</p><p class="form-note">${esc(me.batch || "Batch to be assigned")} · Valid till ${fmtDate(me.validTill)}</p></div></div>
@@ -488,10 +497,12 @@ function dashboard() {
       <section class="form-card" id="payments"><h3>Payments</h3><div id="myPayments" class="mini-list"><p class="form-note">Loading…</p></div>
         <details class="pay-details"><summary class="btn btn-coral btn-sm">Pay a fee</summary>${payForm("other", S.fees.monthly, "fee")}</details></section>
     </div>
+    <section class="form-card wide" id="d-profile"><div class="sec-head"><h3>My profile</h3><button type="button" class="btn btn-outline btn-sm" id="profEdit">Edit details</button></div>
+      <div id="profBox">${profileView(me)}</div></section>
     <section class="form-card wide" id="d-privacy"><h3>My data &amp; privacy</h3>
-      <p class="form-note">You can download a copy of everything we hold about you, or ask us to delete it. See the <a href="privacy.html">Privacy policy</a>.</p>
+      <p class="form-note">Download a PDF of everything we hold about you, or ask us to delete it. See the <a href="privacy.html">Privacy policy</a>.</p>
       ${me.deleteRequested ? `<p class="callout warn">You asked us to delete your data on ${fmtDate(me.deleteRequestedAt)}. Our team will contact you and complete it within 30 days.</p>` : ""}
-      <div class="cta-row"><button type="button" class="btn btn-outline btn-sm" id="myData">Download my data</button>${me.deleteRequested ? "" : `<button type="button" class="btn btn-outline btn-sm danger" id="delReq">Request deletion</button>`}</div></section>`;
+      <div class="cta-row"><button type="button" class="btn btn-outline btn-sm" id="myData">Download my data (PDF)</button>${me.deleteRequested ? "" : `<button type="button" class="btn btn-outline btn-sm danger" id="delReq">Request deletion</button>`}</div></section>`;
 }
 
 async function wireDashboard() {
@@ -543,13 +554,16 @@ async function wireDashboard() {
   $$("[data-cert]").forEach((b) => (b.onclick = () => downloadCertificate(certs[+b.dataset.cert])));
 
   // privacy
-  $("#myData").onclick = async () => {
-    const pay = await myList("payments").catch(() => []);
-    const clean = (o) => JSON.parse(JSON.stringify(o, (k, v) => (v && typeof v.toDate === "function" ? v.toDate().toISOString() : v)));
-    const mine = Object.assign({}, me); delete mine.photo;
-    const out = { exportedAt: new Date().toISOString(), account: { name: user.displayName, email: user.email }, student: clean(mine), photo: "(included in your ID card)", attendance: clean(att), payments: clean(pay), certificates: clean(certs) };
-    download("my-dsf-data.json", new Blob([JSON.stringify(out, null, 2)], { type: "application/json" }));
+  $("#myData").onclick = async (ev) => {
+    try {
+      await busy(ev.currentTarget, "Preparing PDF…", async () => {
+        const pay = await myList("payments").catch(() => []);
+        const allCerts = await myList("certificates").catch(() => []);
+        await myDataPdf(me, att, pay, allCerts);
+      });
+    } catch (e) { toast(e.message === "pdf-lib" ? "Couldn't load the PDF maker. Check your internet and try again." : errText(e), "error"); }
   };
+  $("#profEdit").onclick = () => editMyProfile();
   if ($("#delReq")) $("#delReq").onclick = async (ev) => {
     const b = ev.currentTarget;
     if (b.dataset.confirm !== "1") { b.dataset.confirm = "1"; b.textContent = "Tap again to confirm"; return; }
@@ -557,6 +571,114 @@ async function wireDashboard() {
     catch (e) { toast(errText(e), "error"); }
   };
   if (location.hash) { const t = $(location.hash); if (t) t.scrollIntoView(); }
+}
+
+
+// ---------- student profile (view + self edit)
+function profileView(me) {
+  return `<dl class="info-grid"><dt>Name</dt><dd>${esc(me.name)}</dd><dt>Date of birth</dt><dd>${fmtDate(me.dob)}</dd><dt>Program</dt><dd>${esc(me.program)}</dd><dt>Batch</dt><dd>${esc(me.batch || "—")}</dd>
+    <dt>Phone</dt><dd>${esc(me.phone)}</dd><dt>Emergency</dt><dd>${esc(me.emergency)}</dd><dt>Guardian</dt><dd>${esc(me.guardian || "—")}</dd><dt>Blood group</dt><dd>${esc(me.blood || "—")}</dd><dt>Address</dt><dd>${esc(me.address || "—")}</dd><dt>Email</dt><dd>${esc(me.email || user.email || "")}</dd></dl>
+    <p class="form-note">To change your name, date of birth, program or batch, contact the office.</p>`;
+}
+function editMyProfile() {
+  const me = S.me; let photo = safePhoto(me.photo);
+  const dlg = modal(`<h3>Edit my details</h3><form id="myProf" class="form-grid" novalidate>
+    <div class="field"><label for="m_phone">Phone (WhatsApp) *</label><input id="m_phone" type="tel" inputmode="numeric" maxlength="14" value="${esc(me.phone)}"></div>
+    <div class="field"><label for="m_emerg">Emergency contact *</label><input id="m_emerg" type="tel" inputmode="numeric" maxlength="14" value="${esc(me.emergency)}"></div>
+    <div class="field"><label for="m_guardian">Parent / guardian</label><input id="m_guardian" maxlength="80" value="${esc(me.guardian || "")}"></div>
+    <div class="field"><label for="m_blood">Blood group</label><select id="m_blood">${opts(BLOOD, me.blood, "Select")}</select></div>
+    <div class="field full"><label for="m_addr">Address</label><textarea id="m_addr" rows="2" maxlength="300">${esc(me.address || "")}</textarea></div>
+    <div class="field full"><label for="m_photo">Photo</label><div class="photo-row"><img id="m_prev" class="photo-prev" alt="" ${photo ? `src="${photo}"` : "hidden"}><input id="m_photo" type="file" accept="image/*"></div></div>
+    <div class="cta-row full"><button class="btn btn-coral" type="submit">Save details</button></div></form>`);
+  const f = $("#myProf", dlg);
+  $("#m_photo", dlg).onchange = async (e) => { try { photo = await compressPhoto(e.target.files[0]); $("#m_prev", dlg).src = photo; $("#m_prev", dlg).hidden = false; } catch (err) { e.target.value = ""; formError(f, err.message); } };
+  f.addEventListener("submit", async (ev) => {
+    ev.preventDefault(); formError(f, "");
+    const d = { phone: normPhone($("#m_phone", dlg).value), emergency: normPhone($("#m_emerg", dlg).value), guardian: $("#m_guardian", dlg).value.trim(),
+      blood: $("#m_blood", dlg).value, address: $("#m_addr", dlg).value.trim(), photo };
+    if (!/^[6-9]\d{9}$/.test(d.phone)) return formError(f, "Please enter a valid 10-digit mobile number.");
+    if (!/^[6-9]\d{9}$/.test(d.emergency)) return formError(f, "Please enter a valid 10-digit emergency contact number.");
+    if (ageOn(me.dob) < 18 && d.guardian.length < 2) return formError(f, "Please enter the parent or guardian's name.");
+    if (!photo) return formError(f, "Please add a photo.");
+    try {
+      await busy(f.querySelector("[type=submit]"), "Saving…", () => F.updateDoc(F.doc(db, "students", user.uid), Object.assign({ updatedAt: F.serverTimestamp() }, d)));
+      dlg.close(); toast("Details saved."); await studentPortal(); location.hash = "#d-profile";
+    } catch (e) { formError(f, errText(e)); }
+  });
+}
+
+// ---------- "My data" as a PDF
+function loadScript(src) {
+  return new Promise((ok, bad) => { const t = document.createElement("script"); t.src = src; t.onload = ok; t.onerror = () => bad(new Error("pdf-lib")); document.head.appendChild(t); });
+}
+async function imgToDataUrl(src, type = "image/png") {
+  const i = await loadImage(src); const c = document.createElement("canvas"); c.width = i.naturalWidth; c.height = i.naturalHeight;
+  const g = c.getContext("2d"); if (type === "image/jpeg") { g.fillStyle = "#fff"; g.fillRect(0, 0, c.width, c.height); } g.drawImage(i, 0, 0); return c.toDataURL(type, 0.9);
+}
+async function myDataPdf(me, att, pay, certs) {
+  if (!window.jspdf) await loadScript(JSPDF_URL);
+  const doc = new window.jspdf.jsPDF({ unit: "mm", format: "a4" });
+  const W = 210, M = 16, NAVY = [4, 34, 46], TEAL = [11, 110, 130], GREY = [90, 110, 116];
+  const txt = (v) => String(v == null || v === "" ? "-" : v).replace(/₹/g, "Rs. ").replace(/[–—]/g, "-").replace(/−/g, "-");
+  const STATUS = { active: "Active", inactive: "Inactive", applied: "Application received", fee_submitted: "Fee submitted", rejected: "Not approved", pending: "Awaiting check", verified: "Verified", valid: "Valid", revoked: "Revoked" };
+  const st = (v) => STATUS[v] || v;
+  let y = 0;
+  const header = () => {
+    doc.setFillColor(...NAVY); doc.rect(0, 0, W, 30, "F");
+    doc.setTextColor(255, 255, 255); doc.setFont("helvetica", "bold"); doc.setFontSize(15); doc.text("Dreamer Swimming Foundation", M + 26, 13);
+    doc.setFont("helvetica", "normal"); doc.setFontSize(10); doc.text("My data - personal record", M + 26, 20);
+    if (header.logo) { doc.setFillColor(255, 255, 255); doc.roundedRect(M, 6, 22, 16, 2, 2, "F"); doc.addImage(header.logo, "PNG", M + 1.5, 8, 19, 11.5); }
+    y = 40; doc.setTextColor(...NAVY);
+  };
+  header.logo = await imgToDataUrl("assets/dsf-logo.png").catch(() => null);
+  const ensure = (h) => { if (y + h > 280) { doc.addPage(); header(); } };
+  const section = (title) => { ensure(16); y += 4; doc.setFont("helvetica", "bold"); doc.setFontSize(12); doc.setTextColor(...TEAL); doc.text(title, M, y); y += 2; doc.setDrawColor(47, 217, 196); doc.setLineWidth(0.6); doc.line(M, y, W - M, y); y += 6; doc.setTextColor(...NAVY); };
+  const table = (cols, rows, widths) => {
+    const line = (cells, bold) => {
+      doc.setFont("helvetica", bold ? "bold" : "normal"); doc.setFontSize(9);
+      const wrapped = cells.map((c, i) => doc.splitTextToSize(txt(c), widths[i] - 2));
+      const h = Math.max(...wrapped.map((w) => w.length)) * 4.2 + 2;
+      ensure(h); let x = M;
+      wrapped.forEach((w, i) => { doc.text(w, x, y); x += widths[i]; });
+      y += h; if (!bold) { doc.setDrawColor(225, 235, 236); doc.setLineWidth(0.2); doc.line(M, y - 2.5, W - M, y - 2.5); }
+    };
+    doc.setTextColor(...GREY); line(cols, true); doc.setTextColor(...NAVY);
+    if (!rows.length) { doc.setFont("helvetica", "italic"); doc.setFontSize(9); doc.text("None", M, y); y += 6; return; }
+    rows.forEach((r) => line(r, false));
+  };
+  header();
+  doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(...GREY);
+  doc.text(`Generated on ${fmtDate(new Date())} at ${fmtTime(new Date())} for ${txt(user.email)}`, M, y); y += 4;
+  section("Student profile");
+  const top = y;
+  const fields = [["Name", me.name], ["Student ID", me.studentId], ["Status", st(me.status)], ["Program", me.program], ["Batch", me.batch], ["Valid till", me.validTill && fmtDate(me.validTill)],
+    ["Date of birth", fmtDate(me.dob)], ["Gender", me.gender], ["Phone", me.phone], ["Emergency contact", me.emergency], ["Parent / guardian", me.guardian],
+    ["Guardian consent", me.guardianConsent ? "Given" : "-"], ["Blood group", me.blood], ["Address", me.address], ["Email", me.email], ["Applied on", fmtDate(me.createdAt)]];
+  fields.forEach(([k, v]) => {
+    doc.setFont("helvetica", "bold"); doc.setFontSize(9); doc.setTextColor(...GREY); doc.text(k, M, y);
+    doc.setFont("helvetica", "normal"); doc.setTextColor(...NAVY);
+    const w = doc.splitTextToSize(txt(v), 95); doc.text(w, M + 42, y); y += w.length * 4.6 + 1;
+  });
+  const ph = safePhoto(me.photo);
+  if (ph) { doc.addImage(ph, "JPEG", W - M - 34, top - 2, 34, 42.5); doc.setFontSize(8); doc.setTextColor(...GREY); doc.text("Photo on file", W - M - 34, top + 45); }
+  y = Math.max(y, top + 50);
+  section(`Attendance (${att.length} days)`);
+  table(["Date", "Time", "How"], att.slice().sort((a, b) => b.day.localeCompare(a.day)).map((a) => [fmtDate(a.day), fmtTime(a.at), a.method === "qr" ? "QR check-in" : "Marked by staff"]), [60, 50, 68]);
+  section("Payments");
+  table(["Date", "For", "Amount", "Method", "Status"], pay.slice().sort((a, b) => (toDate(b.createdAt) || 0) - (toDate(a.createdAt) || 0)).map((p) =>
+    [fmtDate(p.createdAt), p.purpose, "Rs. " + Number(p.amount || 0).toLocaleString("en-IN"), p.method === "upi" ? "UPI " + (p.utr || "") : "Cash", st(p.status)]), [28, 50, 26, 46, 28]);
+  section("Certificates");
+  table(["Number", "Certificate", "Issued", "Status"], certs.map((c) => [c.id, `${c.heading}: ${c.title}`, fmtDate(c.issuedOn), st(c.status)]), [40, 90, 28, 20]);
+  section("How we use this data");
+  doc.setFont("helvetica", "normal"); doc.setFontSize(9);
+  const note = doc.splitTextToSize("We use these details only to run your training: admission, fees, attendance, certificates and emergencies. Trainers see only your name, student ID, program, batch and attendance. Location is checked only when you scan the check-in QR and is stored rounded to about 100 m. Full policy: " + new URL("privacy.html", location.href).href, W - 2 * M);
+  ensure(note.length * 4.6); doc.text(note, M, y); y += note.length * 4.6;
+  const n = doc.getNumberOfPages();
+  for (let i = 1; i <= n; i++) {
+    doc.setPage(i); doc.setFontSize(8); doc.setTextColor(...GREY);
+    doc.text("Contains personal information - keep it private.", M, 290); doc.text(`Page ${i} of ${n}`, W - M, 290, { align: "right" });
+  }
+  doc.save(`my-data-${me.studentId || "dsf"}.pdf`);
 }
 
 // ---------- ID card + certificate drawing
@@ -629,12 +751,13 @@ async function downloadCertificate(c) {
 // =====================================================================
 async function attendPage() {
   const code = new URLSearchParams(location.search).get("c") || "";
-  const shell = (title, body, kind = "") => { root.innerHTML = accountBar() + `<section class="form-card checkin ${kind}"><h3>${title}</h3>${body}</section>`; wireSignOut(); };
+  const shell = (title, body, kind = "") => { root.innerHTML = accountBar("", S.me && S.me.name) + `<section class="form-card checkin ${kind}"><h3>${title}</h3>${body}</section>`; wireSignOut(); };
   if (!code) return shell("Scan the QR code at the pool", `<p>Ask your trainer to show the check-in QR code, then scan it with your phone camera.</p>`);
   root.innerHTML = `<p class="form-note">Checking your account…</p>`;
   if (await getStaff()) return shell("This is a staff account", `<p>Students check in with their own account. To mark a student present, use <a href="admin.html#attendance">Staff portal → Attendance</a>.</p>`);
   const snap = await F.getDoc(F.doc(db, "students", user.uid));
   const me = snap.exists() ? snap.data() : null;
+  S.me = me;
   if (!me) return shell("No student account found", `<p>This Google account hasn't applied yet. Sign in with the account you applied with, or <a href="student.html">apply now</a>.</p>`, "bad");
   if (me.status !== "active") return shell("Check-in not available", `<p>Check-in is available once your admission is confirmed and your membership is active.</p><p><a href="student.html">Open the Student portal</a></p>`, "bad");
   const day = istDay(), ref = F.doc(db, "attendance", user.uid + "_" + day);
@@ -698,8 +821,8 @@ function verifyPage() {
 // =====================================================================
 const A = { staff: null, role: "", tab: "", students: null, payments: null, staffList: null, certs: null, roster: null };
 const TABS_ADMIN = [["overview", "Overview"], ["applications", "Applications"], ["payments", "Payments"], ["students", "Students"],
-  ["attendance", "Attendance"], ["certificates", "Certificates"], ["trainers", "Trainers"], ["notices", "Notices"], ["settings", "Settings"]];
-const TABS_TRAINER = [["attendance", "Attendance"], ["notices", "Notices"]];
+  ["attendance", "Attendance"], ["certificates", "Certificates"], ["trainers", "Staff"], ["magazine", "Magazine"], ["notices", "Notices"], ["settings", "Settings"]];
+const TABS_TRAINER = [["attendance", "Attendance"], ["magazine", "Magazine"], ["notices", "Notices"]];
 
 async function staffPortal() {
   root.innerHTML = `<p class="form-note">Checking staff access…</p>`;
@@ -712,17 +835,18 @@ async function staffPortal() {
   const tabs = A.role === "admin" ? TABS_ADMIN : TABS_TRAINER;
   const want = location.hash.slice(1);
   A.tab = tabs.some((t) => t[0] === want) ? want : tabs[0][0];
-  root.innerHTML = accountBar(`<span class="badge ${A.role === "admin" ? "ok" : "info"}">${A.role === "admin" ? "Administrator" : "Trainer"}</span>`) +
+  root.innerHTML = accountBar(`<span class="badge ${A.role === "admin" ? "ok" : "info"}">${A.role === "admin" ? "Administrator" : "Trainer"}</span><button type="button" class="btn btn-outline btn-sm" id="myStaffProf">My profile</button>`, A.staff.name) +
     `<nav class="tabs" role="tablist">${tabs.map(([k, l]) => `<button type="button" role="tab" data-tab="${k}" aria-selected="${k === A.tab}">${l}</button>`).join("")}</nav><div id="panel" class="panel"></div>`;
   wireSignOut();
   $$("[data-tab]").forEach((b) => (b.onclick = () => showTab(b.dataset.tab)));
+  $("#myStaffProf").onclick = () => editStaff(Object.assign({ id: user.email.toLowerCase() }, A.staff), true, () => staffPortal());
   showTab(A.tab);
 }
 async function showTab(t) {
   A.tab = t; history.replaceState(null, "", "#" + t);
   $$("[data-tab]").forEach((b) => b.setAttribute("aria-selected", b.dataset.tab === t));
   const p = $("#panel"); p.innerHTML = `<p class="form-note">Loading…</p>`;
-  try { await ({ overview: tOverview, applications: tApplications, payments: tPayments, students: tStudents, attendance: tAttendance, certificates: tCertificates, trainers: tTrainers, notices: tNotices, settings: tSettings })[t](p); }
+  try { await ({ overview: tOverview, applications: tApplications, payments: tPayments, students: tStudents, attendance: tAttendance, certificates: tCertificates, trainers: tTrainers, magazine: tMagazine, notices: tNotices, settings: tSettings })[t](p); }
   catch (e) { console.error(e); p.innerHTML = `<p class="callout bad">${esc(errText(e))}</p>`; }
 }
 const all = async (col) => (await F.getDocs(F.collection(db, col))).docs.map((d) => Object.assign({ id: d.id }, d.data()));
@@ -742,7 +866,7 @@ async function tOverview(p) {
       <button type="button" class="stat" data-go="students"><b>${act}</b><span>Active students</span></button>
       <button type="button" class="stat" data-go="attendance"><b>${att.size}</b><span>Checked in today</span></button>
     </div>
-    ${del.length ? `<section class="form-card wide"><h3>Data deletion requests</h3><p class="form-note">Complete these within 30 days (Students → open the student → Delete all data).</p>${del.map((s) => `<div class="mini-row"><span><b>${esc(s.name)}</b><small>${esc(s.studentId || "Applicant")} · requested ${fmtDate(s.deleteRequestedAt)}</small></span><button type="button" class="btn btn-outline btn-sm" data-open="${s.id}">Open</button></div>`).join("")}</section>` : ""}
+    ${del.length ? `<section class="form-card wide"><h3>Data deletion requests</h3><p class="form-note">Within 30 days, delete these records in the Firebase console (Firestore → students, roster, attendance, payments, certificates), as the Privacy policy promises.</p>${del.map((s) => `<div class="mini-row"><span><b>${esc(s.name)}</b><small>${esc(s.studentId || "Applicant")} · requested ${fmtDate(s.deleteRequestedAt)}</small></span><button type="button" class="btn btn-outline btn-sm" data-open="${s.id}">Open</button></div>`).join("")}</section>` : ""}
     <div class="cta-row"><button type="button" class="btn btn-coral" id="ovKiosk">Open check-in QR</button></div>`;
   $$("[data-go]", p).forEach((b) => (b.onclick = () => showTab(b.dataset.go)));
   $$("[data-open]", p).forEach((b) => (b.onclick = () => openStudent(b.dataset.open)));
@@ -854,30 +978,45 @@ async function openStudent(id) {
   const dlg = modal(`<div class="app-head">${safePhoto(s.photo) ? `<img src="${safePhoto(s.photo)}" alt="" class="avatar-lg">` : ""}<div><h3>${esc(s.name)}</h3><p>${esc(s.studentId || "No ID yet")} ${badge(s.status)}</p></div></div>
     ${s.deleteRequested ? `<p class="callout warn">Asked for data deletion on ${fmtDate(s.deleteRequestedAt)}.</p>` : ""}
     <dl class="info-grid"><dt>Born</dt><dd>${fmtDate(s.dob)} (age ${ageOn(s.dob)})</dd><dt>Phone</dt><dd><a href="tel:${esc(s.phone)}">${esc(s.phone)}</a></dd><dt>Emergency</dt><dd>${esc(s.emergency)}</dd><dt>Guardian</dt><dd>${esc(s.guardian || "—")}</dd>
-      <dt>Blood</dt><dd>${esc(s.blood || "—")}</dd><dt>Address</dt><dd>${esc(s.address || "—")}</dd><dt>Email</dt><dd>${esc(s.email || "—")}</dd><dt>Attendance</dt><dd>${att.length} days total</dd>
-      <dt>Payments</dt><dd>${pay.length ? pay.map((x) => `${esc(x.purpose)}: ${money(x.amount)} ${badge(x.status)}`).join("<br>") : "None"}</dd><dt>Certificates</dt><dd>${certs.length ? certs.map((c) => `${esc(c.title)} (${esc(c.id)})`).join("<br>") : "None"}</dd></dl>
-    ${s.studentId ? `<form id="editStu" class="form-grid" novalidate>
+      <dt>Blood</dt><dd>${esc(s.blood || "—")}</dd><dt>Address</dt><dd>${esc(s.address || "—")}</dd><dt>Attendance</dt><dd>${att.length} days total</dd>
+      <dt>Payments</dt><dd>${pay.length ? pay.map((x) => `${esc(x.purpose)}: ${money(x.amount)} ${badge(x.status)}`).join("<br>") : "None"}</dd><dt>Certificates</dt><dd>${certs.length ? certs.map((c) => `${esc(c.title)} (${esc(c.id)})`).join("<br>") : "None"}</dd><dt>Email</dt><dd>${esc(s.email || "—")}</dd></dl>
+    <form id="editStu" class="form-grid" novalidate>
+      <h4 class="full mini-h">Edit details</h4>
+      <div class="field full"><label>Full name *</label><input name="name" maxlength="80" value="${esc(s.name)}"></div>
+      <div class="field"><label>Date of birth *</label><input type="date" name="dob" value="${esc(s.dob)}"></div>
+      <div class="field"><label>Gender</label><select name="gender">${opts(["Male", "Female", "Other", "Prefer not to say"], s.gender, "Select")}</select></div>
+      <div class="field"><label>Phone *</label><input name="phone" type="tel" inputmode="numeric" maxlength="14" value="${esc(s.phone)}"></div>
+      <div class="field"><label>Emergency *</label><input name="emergency" type="tel" inputmode="numeric" maxlength="14" value="${esc(s.emergency)}"></div>
+      <div class="field"><label>Parent / guardian</label><input name="guardian" maxlength="80" value="${esc(s.guardian || "")}"></div>
+      <div class="field"><label>Blood group</label><select name="blood">${opts(BLOOD, s.blood, "Select")}</select></div>
+      <div class="field full"><label>Address</label><textarea name="address" rows="2" maxlength="300">${esc(s.address || "")}</textarea></div>
       <div class="field"><label>Program</label><select name="program">${opts(PROGRAMS, s.program)}</select></div>
-      <div class="field"><label>Batch</label><select name="batch">${opts(BATCHES, s.batch)}</select></div>
-      <div class="field"><label>Valid till</label><input type="date" name="validTill" value="${esc(s.validTill || "")}"></div>
-      <div class="field"><label>Status</label><select name="status"><option value="active"${s.status === "active" ? " selected" : ""}>Active</option><option value="inactive"${s.status === "inactive" ? " selected" : ""}>Inactive</option></select></div>
-      <div class="cta-row full"><button class="btn btn-solid btn-sm" type="submit">Save changes</button><button class="btn btn-outline btn-sm" type="button" id="stuCard">Download ID card</button><button class="btn btn-outline btn-sm" type="button" id="stuCert">Issue certificate</button></div></form>` : ""}
-    <details class="danger-zone"><summary>Delete all data</summary><p class="form-note">Permanently deletes this student's record, photo, attendance, payments and certificates. Type <b>${esc(s.studentId || s.name)}</b> to confirm.</p><input id="delConfirm" aria-label="Type to confirm"><button type="button" class="btn btn-outline btn-sm danger" id="delGo">Delete permanently</button></details>`);
-  const f = $("#editStu", dlg);
-  if (f) {
-    f.addEventListener("submit", async (ev) => {
-      ev.preventDefault();
-      const d = { program: f.program.value, batch: f.batch.value, validTill: f.validTill.value, status: f.status.value };
-      try {
-        await busy(f.querySelector("[type=submit]"), "Saving…", async () => {
-          const b = F.writeBatch(db);
-          b.update(F.doc(db, "students", id), Object.assign({ updatedAt: F.serverTimestamp() }, d));
-          b.set(F.doc(db, "roster", id), { name: s.name, studentId: s.studentId, program: d.program, batch: d.batch, status: d.status });
-          await b.commit();
-        });
-        Object.assign(s, d); toast("Saved."); dlg.close(); if (A.tab === "students") showTab("students");
-      } catch (e) { formError(f, errText(e)); }
-    });
+      <div class="field"><label>Batch</label><select name="batch">${opts(BATCHES, s.batch, "No batch")}</select></div>
+      ${s.studentId ? `<div class="field"><label>Valid till</label><input type="date" name="validTill" value="${esc(s.validTill || "")}"></div>
+      <div class="field"><label>Status</label><select name="status"><option value="active"${s.status === "active" ? " selected" : ""}>Active</option><option value="inactive"${s.status === "inactive" ? " selected" : ""}>Inactive</option></select></div>` : ""}
+      <div class="field full"><label>Photo</label><div class="photo-row"><img class="photo-prev" id="e_prev" alt="" ${safePhoto(s.photo) ? `src="${safePhoto(s.photo)}"` : "hidden"}><input type="file" accept="image/*" id="e_photo"></div></div>
+      <div class="cta-row full"><button class="btn btn-solid btn-sm" type="submit">Save changes</button>${s.studentId ? `<button class="btn btn-outline btn-sm" type="button" id="stuCard">Download ID card</button><button class="btn btn-outline btn-sm" type="button" id="stuCert">Issue certificate</button>` : ""}</div></form>`);
+  const f = $("#editStu", dlg); let photo = safePhoto(s.photo);
+  $("#e_photo", dlg).onchange = async (e) => { try { photo = await compressPhoto(e.target.files[0]); $("#e_prev", dlg).src = photo; $("#e_prev", dlg).hidden = false; } catch (err) { e.target.value = ""; formError(f, err.message); } };
+  f.addEventListener("submit", async (ev) => {
+    ev.preventDefault(); formError(f, "");
+    const d = { name: f.name.value.trim(), dob: f.dob.value, gender: f.gender.value, phone: normPhone(f.phone.value), emergency: normPhone(f.emergency.value),
+      guardian: f.guardian.value.trim(), blood: f.blood.value, address: f.address.value.trim(), program: f.program.value, batch: f.batch.value, photo };
+    if (s.studentId) { d.validTill = f.validTill.value; d.status = f.status.value; }
+    if (d.name.length < 2) return formError(f, "Enter the student's name.");
+    if (!d.dob || ageOn(d.dob) < 3) return formError(f, "Check the date of birth.");
+    if (!/^[6-9]\d{9}$/.test(d.phone) || !/^[6-9]\d{9}$/.test(d.emergency)) return formError(f, "Enter valid 10-digit phone numbers.");
+    try {
+      await busy(f.querySelector("[type=submit]"), "Saving…", async () => {
+        const bt = F.writeBatch(db);
+        bt.update(F.doc(db, "students", id), Object.assign({ updatedAt: F.serverTimestamp() }, d));
+        if (s.studentId) bt.set(F.doc(db, "roster", id), { name: d.name, studentId: s.studentId, program: d.program, batch: d.batch, status: d.status });
+        await bt.commit();
+      });
+      Object.assign(s, d); toast("Saved."); dlg.close(); showTab(A.tab);
+    } catch (e) { formError(f, errText(e)); }
+  });
+  if (s.studentId) {
     $("#stuCard", dlg).onclick = async () => {
       const cv = document.createElement("canvas"); cv.width = 1012; cv.height = 638;
       drawIdCard(cv, s, await loadImage("assets/dsf-logo.png").catch(() => null), safePhoto(s.photo) ? await loadImage(s.photo).catch(() => null) : null);
@@ -885,22 +1024,6 @@ async function openStudent(id) {
     };
     $("#stuCert", dlg).onclick = () => { A.certFor = id; dlg.close(); showTab("certificates"); };
   }
-  $("#delGo", dlg).onclick = async (ev) => {
-    if ($("#delConfirm", dlg).value.trim() !== (s.studentId || s.name)) return toast("Type the exact text to confirm.", "error");
-    try {
-      await busy(ev.currentTarget, "Deleting…", () => deleteStudent(s, certs));
-      toast("All data deleted."); dlg.close(); A.students = null; showTab(A.tab);
-    } catch (e) { toast(errText(e), "error"); }
-  };
-}
-async function deleteStudent(s, certs) {
-  const [att, pay] = await Promise.all([
-    F.getDocs(F.query(F.collection(db, "attendance"), F.where("uid", "==", s.id))),
-    F.getDocs(F.query(F.collection(db, "payments"), F.where("uid", "==", s.id))),
-  ]);
-  const refs = att.docs.map((d) => d.ref).concat(pay.docs.map((d) => d.ref), certs.map((c) => F.doc(db, "certificates", c.id)), certs.map((c) => F.doc(db, "cert_public", c.id)),
-    [F.doc(db, "roster", s.id), F.doc(db, "students", s.id)]);
-  for (let i = 0; i < refs.length; i += 400) { const b = F.writeBatch(db); refs.slice(i, i + 400).forEach((r) => b.delete(r)); await b.commit(); }
 }
 function modal(html) {
   const d = document.createElement("dialog"); d.className = "dlg";
@@ -1038,9 +1161,9 @@ async function tTrainers(p) {
       <div class="field"><label for="t_spec">Speciality</label><input id="t_spec" maxlength="60" placeholder="e.g. Beginners, Competitive, Lifeguard"></div>
       <div class="field"><label for="t_role">Role</label><select id="t_role"><option value="trainer">Trainer</option><option value="admin">Administrator</option></select></div>
     </div><div class="cta-row"><button class="btn btn-coral" type="submit">Add staff member</button></div></form>
-    <section class="form-card wide"><h3>Staff (${list.length})</h3>${list.map((t) => `<div class="mini-row" data-id="${esc(t.id)}"><span><b>${esc(t.name)}</b> ${badge(t.active ? "active" : "inactive")} <small>${esc(t.id)}${t.phone ? " · " + esc(t.phone) : ""}${t.speciality ? " · " + esc(t.speciality) : ""}</small></span>
+    <section class="form-card wide"><h3>Staff (${list.length})</h3><p class="form-note">To change someone's Gmail address, add them again with the new address and remove the old entry.</p>${list.map((t) => `<div class="mini-row" data-id="${esc(t.id)}"><span><b>${esc(t.name)}</b> ${badge(t.active ? "active" : "inactive")} <small>${esc(t.id)}${t.phone ? " · " + esc(t.phone) : ""}${t.speciality ? " · " + esc(t.speciality) : ""}</small></span>
       <span class="row-actions"><select data-role aria-label="Role"${t.id === user.email.toLowerCase() ? " disabled" : ""}><option value="trainer"${t.role === "trainer" ? " selected" : ""}>Trainer</option><option value="admin"${t.role === "admin" ? " selected" : ""}>Administrator</option></select>
-      ${t.id === user.email.toLowerCase() ? `<small>You</small>` : `<button type="button" class="btn btn-outline btn-sm" data-act>${t.active ? "Deactivate" : "Activate"}</button><button type="button" class="btn btn-outline btn-sm danger" data-del>Remove</button>`}</span></div>`).join("")}</section>`;
+      <button type="button" class="btn btn-outline btn-sm" data-edit>Edit</button>${t.id === user.email.toLowerCase() ? `<small>You</small>` : `<button type="button" class="btn btn-outline btn-sm" data-act>${t.active ? "Deactivate" : "Activate"}</button><button type="button" class="btn btn-outline btn-sm danger" data-del>Remove</button>`}</span></div>`).join("")}</section>`;
   $("#staffForm").addEventListener("submit", async (ev) => {
     ev.preventDefault(); const f = ev.target; formError(f, "");
     const email = $("#t_email").value.trim().toLowerCase(), name = $("#t_name").value.trim();
@@ -1055,12 +1178,175 @@ async function tTrainers(p) {
     const id = row.dataset.id, t = list.find((x) => x.id === id);
     const upd = async (data, msg) => { try { await F.updateDoc(F.doc(db, "staff", id), data); toast(msg); tTrainers(p); } catch (e) { toast(errText(e), "error"); } };
     const r = $("[data-role]", row); if (r) r.onchange = () => upd({ role: r.value }, "Role updated.");
+    $("[data-edit]", row).onclick = () => editStaff(t, t.id === user.email.toLowerCase(), () => (t.id === user.email.toLowerCase() ? staffPortal() : tTrainers(p)));
     const a = $("[data-act]", row); if (a) a.onclick = () => upd({ active: !t.active }, t.active ? "Deactivated." : "Activated.");
     const d = $("[data-del]", row); if (d) d.onclick = async () => {
       if (d.dataset.confirm !== "1") { d.dataset.confirm = "1"; d.textContent = "Tap to confirm"; return; }
       try { await F.deleteDoc(F.doc(db, "staff", id)); toast("Removed."); tTrainers(p); } catch (e) { toast(errText(e), "error"); }
     };
   });
+}
+
+
+function editStaff(t, self, after) {
+  const admin = A.role === "admin";
+  const dlg = modal(`<h3>${self ? "My profile" : "Edit staff member"}</h3><p class="form-note">${esc(t.id)}</p><form id="stEdit" class="form-grid" novalidate>
+    <div class="field"><label for="se_name">Name *</label><input id="se_name" maxlength="60" value="${esc(t.name || "")}"></div>
+    <div class="field"><label for="se_phone">Phone</label><input id="se_phone" type="tel" inputmode="numeric" maxlength="14" value="${esc(t.phone || "")}"></div>
+    <div class="field full"><label for="se_spec">Speciality</label><input id="se_spec" maxlength="60" value="${esc(t.speciality || "")}"></div>
+    ${admin && !self ? `<div class="field"><label for="se_role">Role</label><select id="se_role"><option value="trainer"${t.role === "trainer" ? " selected" : ""}>Trainer</option><option value="admin"${t.role === "admin" ? " selected" : ""}>Administrator</option></select></div>
+    <div class="field"><label for="se_active">Status</label><select id="se_active"><option value="1"${t.active ? " selected" : ""}>Active</option><option value="0"${t.active ? "" : " selected"}>Inactive</option></select></div>` : ""}
+    <div class="cta-row full"><button class="btn btn-coral" type="submit">Save</button></div></form>`);
+  const f = $("#stEdit", dlg);
+  f.addEventListener("submit", async (ev) => {
+    ev.preventDefault(); formError(f, "");
+    const d = { name: $("#se_name", dlg).value.trim(), phone: normPhone($("#se_phone", dlg).value), speciality: $("#se_spec", dlg).value.trim() };
+    if (d.name.length < 2) return formError(f, "Enter a name.");
+    if (d.phone && !/^[6-9]\d{9}$/.test(d.phone)) return formError(f, "Enter a valid 10-digit phone number, or leave it blank.");
+    if (admin && !self) { d.role = $("#se_role", dlg).value; d.active = $("#se_active", dlg).value === "1"; }
+    try { await busy(f.querySelector("[type=submit]"), "Saving…", () => F.updateDoc(F.doc(db, "staff", t.id), d)); dlg.close(); toast("Saved."); if (self) Object.assign(A.staff, d); after(); }
+    catch (e) { formError(f, errText(e)); }
+  });
+}
+
+
+// ---------- magazine: images & PDFs stored in Firestore (works on the free Spark plan)
+const CHUNK = 700000;                // characters of base64 per document (Firestore limit is ~1 MB)
+const MAX_PDF = 10 * 1024 * 1024;
+async function resizeImage(file, maxSide, quality, maxChars) {
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await loadImage(url), k = Math.min(1, maxSide / Math.max(img.width, img.height));
+    const c = document.createElement("canvas"); c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+    const g = c.getContext("2d"); g.fillStyle = "#fff"; g.fillRect(0, 0, c.width, c.height); g.drawImage(img, 0, 0, c.width, c.height);
+    for (let q = quality; q >= 0.4; q -= 0.08) { const d = c.toDataURL("image/jpeg", q); if (d.length <= maxChars) return d; }
+    return c.toDataURL("image/jpeg", 0.35);
+  } finally { URL.revokeObjectURL(url); }
+}
+const fileToBase64 = (file) => new Promise((ok, bad) => { const r = new FileReader(); r.onload = () => ok(String(r.result).split(",")[1]); r.onerror = bad; r.readAsDataURL(file); });
+async function magFull(item) {
+  const parts = [];
+  for (let i = 0; i < item.parts; i++) {
+    const p = await F.getDoc(F.doc(db, "magazine", item.id, "parts", String(i)));
+    if (!p.exists()) throw new Error("This file is incomplete. Ask the office to upload it again.");
+    parts.push(p.data().data);
+  }
+  return parts.join("");
+}
+async function magList() {
+  const s = await F.getDocs(F.query(F.collection(db, "magazine"), F.orderBy("createdAt", "desc"), F.limit(200)));
+  return s.docs.map((d) => Object.assign({ id: d.id }, d.data()));
+}
+async function openMagPdf(item, win) {
+  const b64 = await magFull(item);
+  const bin = atob(b64), u8 = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+  const url = URL.createObjectURL(new Blob([u8], { type: "application/pdf" }));
+  if (win && !win.closed) win.location.href = url; else download((item.title || "magazine") + ".pdf", url);
+}
+
+async function tMagazine(p) {
+  const list = await magList();
+  p.innerHTML = `<form class="form-card wide" id="magForm" novalidate><h3>Upload to the Magazine</h3>
+      <p class="form-note">Photos (JPG/PNG) are resized automatically. PDFs up to 10 MB. Only upload photos of children with their parents' permission.</p>
+      <div class="form-grid">
+        <div class="field"><label for="g_title">Title / caption *</label><input id="g_title" maxlength="120" placeholder="e.g. Annual competition 2026"></div>
+        <div class="field"><label for="g_cat">Category</label><select id="g_cat">${opts(MAG_CATS, "Events")}</select></div>
+        <div class="field full"><label for="g_files">Photos or PDF *</label><input id="g_files" type="file" accept="image/*,application/pdf" multiple></div>
+      </div>
+      <p class="form-note" id="g_prog" aria-live="polite"></p>
+      <div class="cta-row"><button class="btn btn-coral" type="submit">Upload</button><a class="btn btn-outline" href="magazine.html" target="_blank">View Magazine</a></div></form>
+    <section class="form-card wide"><h3>Published (${list.length})</h3><div class="mag-admin">${list.map((m) => `<div class="mag-a-item" data-id="${esc(m.id)}">
+      ${m.type === "pdf" ? `<span class="mag-pdf-ico" aria-hidden="true">PDF</span>` : `<img src="${safePhoto(m.thumb)}" alt="">`}
+      <span><b>${esc(m.title)}</b><small>${esc(m.category)} · ${fmtDate(m.createdAt)}${m.type === "pdf" ? " · " + (m.size / 1048576).toFixed(1) + " MB" : ""}</small></span>
+      <button type="button" class="btn btn-outline btn-sm danger" data-del>Delete</button></div>`).join("") || `<p class="empty">Nothing uploaded yet.</p>`}</div></section>`;
+  $("#magForm").addEventListener("submit", async (ev) => {
+    ev.preventDefault(); const f = ev.target; formError(f, "");
+    const title = $("#g_title").value.trim(), cat = $("#g_cat").value, files = Array.from($("#g_files").files || []), prog = $("#g_prog");
+    if (title.length < 2) return formError(f, "Enter a title or caption.");
+    if (!files.length) return formError(f, "Choose at least one photo or PDF.");
+    const bad = files.find((x) => !(/^image\//.test(x.type) || x.type === "application/pdf"));
+    if (bad) return formError(f, `${bad.name} is not a photo or PDF.`);
+    const big = files.find((x) => x.type === "application/pdf" && x.size > MAX_PDF);
+    if (big) return formError(f, `${big.name} is larger than 10 MB. Compress the PDF and try again.`);
+    try {
+      await busy(f.querySelector("[type=submit]"), "Uploading…", async () => {
+        for (let i = 0; i < files.length; i++) {
+          const file = files[i], ref = F.doc(F.collection(db, "magazine"));
+          prog.textContent = `Uploading ${i + 1} of ${files.length}: ${file.name}`;
+          let chunks, meta;
+          if (file.type === "application/pdf") {
+            const b64 = await fileToBase64(file); chunks = [];
+            for (let k = 0; k < b64.length; k += CHUNK) chunks.push(b64.slice(k, k + CHUNK));
+            meta = { type: "pdf", size: file.size };
+          } else {
+            const full = await resizeImage(file, 1600, 0.85, CHUNK), thumb = await resizeImage(file, 520, 0.75, 90000);
+            chunks = [full.split(",")[1]]; meta = { type: "image", thumb };
+          }
+          for (let k = 0; k < chunks.length; k++) {
+            prog.textContent = `Uploading ${i + 1} of ${files.length}: ${file.name} (${Math.round(((k + 1) / chunks.length) * 100)}%)`;
+            await F.setDoc(F.doc(db, "magazine", ref.id, "parts", String(k)), { data: chunks[k] });
+          }
+          await F.setDoc(ref, Object.assign({ title: files.length > 1 && meta.type === "image" ? title : title, category: cat, parts: chunks.length, by: user.email, createdAt: F.serverTimestamp() }, meta));
+        }
+      });
+      prog.textContent = ""; toast(files.length > 1 ? `${files.length} files uploaded.` : "Uploaded."); tMagazine(p);
+    } catch (e) { prog.textContent = ""; formError(f, errText(e)); }
+  });
+  $$("[data-del]", p).forEach((b) => (b.onclick = async () => {
+    if (b.dataset.confirm !== "1") { b.dataset.confirm = "1"; b.textContent = "Tap to confirm"; return; }
+    const id = b.closest("[data-id]").dataset.id, m = list.find((x) => x.id === id);
+    try {
+      await busy(b, "Deleting…", async () => {
+        await F.deleteDoc(F.doc(db, "magazine", id));
+        for (let k = 0; k < (m.parts || 0); k++) await F.deleteDoc(F.doc(db, "magazine", id, "parts", String(k)));
+      });
+      toast("Deleted."); tMagazine(p);
+    } catch (e) { toast(errText(e), "error"); }
+  }));
+}
+
+async function magazinePage(dbOrNull) {
+  const grid = $("#magGrid"), empty = $("#magEmpty"), filters = $("#magFilters");
+  const lb = $("#lightbox"), lbImg = $("#lbImg"), lbCap = $("#lbCap");
+  const items = (window.MAGAZINE || []).map((m) => ({ type: "image", title: m.caption || "", category: m.category || "Events", src: m.src, thumbSrc: m.src, static: true }));
+  if (dbOrNull) {
+    try { (await magList()).forEach((m) => items.push(Object.assign(m, { thumbSrc: safePhoto(m.thumb) }))); }
+    catch (e) { grid.insertAdjacentHTML("beforebegin", `<p class="form-note">Some items could not be loaded. Please reload the page.</p>`); }
+  }
+  grid.innerHTML = "";
+  if (!items.length) { empty.hidden = false; filters.hidden = true; return; }
+  const cats = ["All"].concat(MAG_CATS.filter((c) => items.some((i) => i.category === c)));
+  let active = "All";
+  const close = () => { lb.classList.remove("open"); lbImg.removeAttribute("src"); };
+  const render = () => {
+    grid.innerHTML = "";
+    items.filter((i) => active === "All" || i.category === active).forEach((i) => {
+      const b = document.createElement("button"); b.type = "button"; b.className = "mag-item" + (i.type === "pdf" ? " mag-pdf" : "");
+      if (i.type === "pdf") b.innerHTML = `<span class="mag-pdf-ico" aria-hidden="true">PDF</span><span class="mag-cap"><b>${esc(i.title)}</b><br>Tap to open · ${(i.size / 1048576).toFixed(1)} MB</span>`;
+      else b.innerHTML = `<img src="${i.static ? esc(i.thumbSrc) : i.thumbSrc}" alt="${esc(i.title)}" loading="lazy">${i.title ? `<span class="mag-cap">${esc(i.title)}</span>` : ""}`;
+      b.onclick = async () => {
+        if (i.type === "pdf") {
+          const w = window.open("", "_blank"); if (w) w.document.write("<p style='font-family:sans-serif;padding:20px'>Opening PDF…</p>");
+          const old = b.querySelector(".mag-cap").innerHTML; b.querySelector(".mag-cap").innerHTML = `<b>${esc(i.title)}</b><br>Opening…`;
+          try { await openMagPdf(i, w); } catch (e) { if (w) w.close(); toast(errText(e), "error"); }
+          b.querySelector(".mag-cap").innerHTML = old; return;
+        }
+        lbImg.src = i.thumbSrc; lbImg.alt = i.title; lbCap.textContent = i.title; lb.classList.add("open");
+        if (!i.static && !i.full) { try { i.full = "data:image/jpeg;base64," + (await magFull(i)); } catch (e) { /* keep preview */ } }
+        if (i.full && lb.classList.contains("open") && lbCap.textContent === i.title) lbImg.src = i.full;
+      };
+      grid.appendChild(b);
+    });
+  };
+  filters.innerHTML = "";
+  cats.forEach((c) => {
+    const b = document.createElement("button"); b.type = "button"; b.className = "chip" + (c === active ? " active" : ""); b.textContent = c;
+    b.onclick = () => { active = c; Array.from(filters.children).forEach((x) => x.classList.toggle("active", x.textContent === c)); render(); };
+    filters.appendChild(b);
+  });
+  $("#lbClose").onclick = close; lb.addEventListener("click", (e) => { if (e.target === lb) close(); });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") close(); });
+  render();
 }
 
 // ---------- notices

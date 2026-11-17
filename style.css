@@ -922,3 +922,23 @@ fieldset.method label{ display:flex; align-items:center; gap:8px; font-weight:50
 fieldset.method input[type=radio]{ width:20px; height:20px; padding:0; margin:0; flex-shrink:0; accent-color:var(--reef); }
 fieldset.method label{ justify-content:flex-start; }
 .form-note a, .callout a{ padding:6px 0; }
+
+/* ============================================
+   v8: greeting, profile, magazine uploads
+   ============================================ */
+.acc-who .hello{ font-family:var(--font-display); font-size:1.05rem; }
+.mag-item.mag-pdf{ display:flex; flex-direction:column; align-items:stretch; cursor:pointer; }
+.mag-pdf-ico{
+  display:flex; align-items:center; justify-content:center; aspect-ratio:3/4; max-height:240px; width:100%;
+  font-family:var(--font-mono); font-weight:700; font-size:1.6rem; letter-spacing:0.1em; color:#fff;
+  background:linear-gradient(160deg, #B3261E 0%, #E2533F 100%);
+}
+.mag-pdf .mag-cap b{ color:var(--ink); }
+.mag-admin{ display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:12px; }
+.mag-a-item{ display:grid; grid-template-columns:64px 1fr; gap:10px 12px; align-items:center; padding:10px; border:1px solid rgba(6,34,43,0.1); border-radius:14px; background:#fff; }
+.mag-a-item img, .mag-a-item .mag-pdf-ico{ width:64px; height:64px; object-fit:cover; border-radius:10px; aspect-ratio:auto; font-size:0.85rem; max-height:none; }
+.mag-a-item span:nth-of-type(1), .mag-a-item > span:not(.mag-pdf-ico){ display:flex; flex-direction:column; min-width:0; }
+.mag-a-item small{ color:var(--ink-faint); font-size:0.78rem; }
+.mag-a-item .btn{ grid-column:1 / -1; justify-self:start; }
+.dlg h3{ margin-bottom:4px; }
+.dlg .mini-h{ margin:18px 0 0; }

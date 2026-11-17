@@ -69,12 +69,12 @@
   </section>
 
   <section class="section">
-    <div class="container">
+    <div class="container" id="app" data-portal="magazine">
       <div class="mag-filters" id="magFilters" role="group" aria-label="Filter by category"></div>
-      <div class="mag-grid" id="magGrid"></div>
+      <div class="mag-grid" id="magGrid"><p class="form-note">Loading…</p></div>
       <div class="mag-empty" id="magEmpty" hidden>
         <strong>Photos coming soon.</strong>
-        <p>Our program and competition photos will appear here. Follow the Notice Board for updates.</p>
+        <p>Photos and magazines from our programs and competitions will appear here. Follow the Notice Board for updates.</p>
       </div>
     </div>
   </section>
@@ -140,5 +140,6 @@
 
 <script src="config.js"></script>
 <script src="script.js"></script>
+<script type="module" src="portal.js"></script>
 </body>
 </html>

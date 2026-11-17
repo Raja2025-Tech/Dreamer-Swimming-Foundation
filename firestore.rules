@@ -59,6 +59,10 @@ service cloud.firestore {
         && request.resource.data.role in ['admin', 'trainer']
         && request.resource.data.active is bool
         && request.resource.data.name is string;
+      // every staff member can edit their own name, phone and speciality (not role or status)
+      allow update: if isStaff() && myEmail() == mail
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'phone', 'speciality'])
+        && request.resource.data.name is string && request.resource.data.name.size() >= 2 && request.resource.data.name.size() <= 60;
       allow delete: if isAdmin() && mail != myEmail();
     }
 
@@ -80,6 +84,12 @@ service cloud.firestore {
             && resource.data.status in ['applied', 'fee_submitted', 'rejected']
             && request.resource.data.status in ['applied', 'fee_submitted']
             && request.resource.data.diff(resource.data).affectedKeys().hasOnly(appKeys().concat(['status']))
+            && request.resource.data.updatedAt == request.time
+            && validApp(request.resource.data))
+        // confirmed student updates contact details and photo (name, birth date, program, batch stay with the office)
+        || (isMe(uid)
+            && resource.data.status in ['active', 'inactive']
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['phone', 'emergency', 'guardian', 'blood', 'address', 'photo', 'updatedAt'])
             && request.resource.data.updatedAt == request.time
             && validApp(request.resource.data))
         // student asks for their data to be deleted
@@ -165,6 +175,24 @@ service cloud.firestore {
       allow get: if true;
       allow list: if false;
       allow write: if isAdmin();
+    }
+
+    // ---------- magazine: photos and PDFs, public to read, staff to publish ----------
+    match /magazine/{id} {
+      allow read: if true;
+      allow create, update: if isStaff()
+        && request.resource.data.title is string && request.resource.data.title.size() <= 120
+        && request.resource.data.type in ['image', 'pdf']
+        && request.resource.data.parts is int && request.resource.data.parts >= 1 && request.resource.data.parts <= 25
+        && (!('thumb' in request.resource.data) || (request.resource.data.thumb is string && request.resource.data.thumb.size() <= 100000));
+      allow delete: if isStaff();
+      match /parts/{n} {
+        allow read: if true;
+        allow create, update: if isStaff()
+          && request.resource.data.keys().hasOnly(['data'])
+          && request.resource.data.data is string && request.resource.data.data.size() <= 750000;
+        allow delete: if isStaff();
+      }
     }
 
     // ---------- notices ----------
