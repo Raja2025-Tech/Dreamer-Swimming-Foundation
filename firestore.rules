@@ -45,6 +45,7 @@ service cloud.firestore {
         && phoneOk(d.phone) && phoneOk(d.emergency)
         && d.program is string && d.program.size() > 0 && d.program.size() <= 60
         && d.photo is string && d.photo.size() > 100 && d.photo.size() <= 80000
+        && d.photo.matches('^data:image/jpeg;base64,[A-Za-z0-9+/=]+$')
         && d.consent == true
         && shortText(d, 'gender', 30) && shortText(d, 'batch', 40) && shortText(d, 'blood', 5)
         && shortText(d, 'guardian', 80) && shortText(d, 'address', 300) && shortText(d, 'email', 120);
@@ -139,7 +140,7 @@ service cloud.firestore {
           && request.resource.data.method == 'qr'
           && request.resource.data.code == kiosk().code
           && request.resource.data.day == kiosk().day
-          && request.time < kiosk().exp
+          && request.time < kiosk().at + duration.value(90, 's')
           && id == request.auth.uid + '_' + kiosk().day
           && request.resource.data.at == request.time
           && atPool(request.resource.data));
@@ -148,8 +149,10 @@ service cloud.firestore {
     }
 
     // ---------- live check-in code shown on the trainer's screen ----------
+    // `at` is set by the server, so a wrong clock on the trainer's phone can't break check-in
     match /kiosk/{id} {
-      allow read, write: if isStaff();
+      allow read: if isStaff();
+      allow write: if isStaff() && request.resource.data.at == request.time;
     }
 
     // ---------- certificates ----------

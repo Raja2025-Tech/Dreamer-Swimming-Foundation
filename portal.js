@@ -45,6 +45,9 @@ function toDate(v) {
 }
 const fmtDate = (v) => { const d = toDate(v); return d ? d.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric", timeZone: "Asia/Kolkata" }) : "—"; };
 const fmtTime = (v) => { const d = toDate(v); return d ? d.toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit", timeZone: "Asia/Kolkata" }) : "—"; };
+// Only a JPEG data URL produced by compressPhoto() is ever put into the page
+const PHOTO_RE = /^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/;
+const safePhoto = (v) => (typeof v === "string" && PHOTO_RE.test(v) ? v : "");
 const money = (n) => "₹" + Number(n || 0).toLocaleString("en-IN");
 function ageOn(dob) {
   if (!dob) return NaN;
@@ -125,7 +128,7 @@ function formError(form, msg) {
 }
 const badge = (status) => {
   const map = { applied: ["Application received", "info"], fee_submitted: ["Fee submitted", "info"], active: ["Active", "ok"],
-    inactive: ["Inactive", "muted"], rejected: ["Not approved", "bad"], pending: ["Awaiting check", "warn"],
+    inactive: ["Inactive", "muted"], rejected: ["Not approved", "bad"], not_verified: ["Not verified", "bad"], pending: ["Awaiting check", "warn"],
     verified: ["Verified", "ok"], valid: ["Valid", "ok"], revoked: ["Revoked", "bad"], qr: ["QR", "info"], manual: ["Manual", "muted"] };
   const [t, k] = map[status] || [status, "muted"];
   return `<span class="badge ${k}">${esc(t)}</span>`;
@@ -194,7 +197,9 @@ function accountBar(extra = "") {
   return `<div class="account-bar"><span class="acc-who">${user.photoURL ? `<img src="${esc(user.photoURL)}" alt="" referrerpolicy="no-referrer">` : ""}<span><b>${esc(user.displayName || "Signed in")}</b><small>${esc(user.email || "")}</small></span></span>
     <span class="acc-actions">${extra}<button type="button" class="btn btn-outline btn-sm" data-signout>Sign out</button></span></div>`;
 }
-function wireSignOut() { $$("[data-signout]").forEach((b) => (b.onclick = () => F.signOut(auth))); }
+function wireSignOut() {
+  $$("[data-signout]").forEach((b) => (b.onclick = async () => { await F.signOut(auth); if (location.search.includes("from=staff")) history.replaceState(null, "", location.pathname); }));
+}
 
 async function getStaff() {
   if (!user || !user.email) return null;
@@ -224,7 +229,10 @@ const S = { me: null, fees: {}, staff: null };
 
 async function studentPortal() {
   root.innerHTML = `<p class="form-note">Loading your account…</p>`;
-  const [snap, fees, staff] = await Promise.all([F.getDoc(F.doc(db, "students", user.uid)), getFees(), getStaff()]);
+  // One login, two dashboards: staff accounts always go to the staff dashboard
+  const staff = await getStaff();
+  if (staff) { root.innerHTML = `<p class="form-note">Signed in as staff. Opening the Staff portal…</p>`; location.replace("admin.html"); return; }
+  const [snap, fees] = await Promise.all([F.getDoc(F.doc(db, "students", user.uid)), getFees()]);
   S.me = snap.exists() ? Object.assign({ id: snap.id }, snap.data()) : null;
   S.fees = fees; S.staff = staff;
   renderStudent();
@@ -237,19 +245,31 @@ function timeline(status) {
 }
 
 function renderStudent(view) {
-  const me = S.me, staffLink = S.staff ? `<a class="btn btn-solid btn-sm" href="admin.html">Staff portal</a>` : "";
+  const me = S.me, staffLink = "";
+  const fromStaff = new URLSearchParams(location.search).get("from") === "staff";
+  const notStaffNote = fromStaff ? `<p class="callout warn">${esc(user.email)} is not on the staff list, so you're in the Student portal. Staff: ask an administrator to add this Gmail under Trainers, or sign out and use your staff Google account.</p>` : "";
   let body = "";
   if (view === "edit" || !me) body = applicationForm(me);
   else if (me.status === "applied") body = feeStep();
   else if (me.status === "fee_submitted") body = waitingStep();
   else if (me.status === "rejected") body = rejectedStep();
   else body = dashboard();
-  root.innerHTML = accountBar(staffLink) + body;
+  root.innerHTML = accountBar(staffLink) + notStaffNote + body;
   wireSignOut();
   if (view === "edit" || !me) wireApplication();
   else if (me.status === "applied") wireFeeForm("Admission fee", true);
   else if (me.status === "rejected") $("#reapply").onclick = () => renderStudent("edit");
-  else if (me.status === "fee_submitted") { $("#editApp") && ($("#editApp").onclick = () => renderStudent("edit")); loadMyPayments(); }
+  else if (me.status === "fee_submitted") {
+    $("#editApp").onclick = () => renderStudent("edit");
+    loadMyPayments().then((list) => {
+      const adm = list.filter((p) => p.purpose === "Admission fee");
+      if (adm.length && adm.every((p) => p.status === "rejected")) {
+        const r = $("#repay"); r.hidden = false; r.open = true;
+        r.insertAdjacentHTML("beforebegin", `<p class="callout bad">Your admission fee payment could not be verified. Please check the details and submit it again, or contact us on WhatsApp.</p>`);
+      }
+    });
+    wirePayForm("adm2", "Admission fee", async (pay) => { await F.addDoc(F.collection(db, "payments"), pay); toast("Payment details submitted."); await studentPortal(); });
+  }
   else wireDashboard();
 }
 
@@ -277,7 +297,7 @@ function applicationForm(me) {
         <div class="field full"><label for="a_addr">Address</label><textarea id="a_addr" rows="2" maxlength="300">${esc(d.address || "")}</textarea></div>
         <div class="field full photo-field">
           <label for="a_photo">Passport-size photo *</label>
-          <div class="photo-row"><img id="a_prev" class="photo-prev" alt="Photo preview" ${d.photo ? `src="${d.photo}"` : "hidden"}>
+          <div class="photo-row"><img id="a_prev" class="photo-prev" alt="Photo preview" ${safePhoto(d.photo) ? `src="${safePhoto(d.photo)}"` : "hidden"}>
           <div><input id="a_photo" type="file" accept="image/*"><p class="form-note">A clear, front-facing photo. It is resized to a small file and used only for the ID card.</p></div></div>
         </div>
         <div class="field full check"><label><input type="checkbox" id="a_gconsent" ${d.guardianConsent ? "checked" : ""}> I am the swimmer's parent or guardian and I consent to these details being used for training, as described in the <a href="privacy.html" target="_blank">Privacy policy</a>.</label></div>
@@ -288,7 +308,7 @@ function applicationForm(me) {
 }
 
 function wireApplication() {
-  const form = $("#appForm"); let photo = S.me && S.me.photo || "";
+  const form = $("#appForm"); let photo = safePhoto(S.me && S.me.photo);
   const syncMinor = () => {
     const minor = ageOn($("#a_dob").value) < 18;
     $("#gHint").textContent = minor ? "* (swimmer is under 18)" : "";
@@ -412,7 +432,7 @@ function appSummary() {
   const me = S.me;
   return `<section class="form-card summary">
       <h3>Your application</h3>
-      <div class="summary-head">${me.photo ? `<img src="${me.photo}" alt="" class="avatar-lg">` : ""}<div><b>${esc(me.name)}</b><span>${esc(me.program)}</span><span>${esc(me.batch || "No batch preference")}</span></div></div>
+      <div class="summary-head">${safePhoto(me.photo) ? `<img src="${safePhoto(me.photo)}" alt="" class="avatar-lg">` : ""}<div><b>${esc(me.name)}</b><span>${esc(me.program)}</span><span>${esc(me.batch || "No batch preference")}</span></div></div>
       <dl class="info-grid"><dt>Date of birth</dt><dd>${fmtDate(me.dob)}</dd><dt>Phone</dt><dd>${esc(me.phone)}</dd><dt>Emergency</dt><dd>${esc(me.emergency)}</dd>${me.guardian ? `<dt>Guardian</dt><dd>${esc(me.guardian)}</dd>` : ""}</dl>
       <button type="button" class="btn btn-outline btn-sm" id="editApp">Edit application</button>
     </section>`;
@@ -424,6 +444,7 @@ function waitingStep() {
         <h3>Waiting for confirmation</h3>
         <p>Thank you. Our team will check your application and payment, then confirm your admission and batch. You'll see your Student ID and ID card here once it's confirmed.</p>
         <h4 class="mini-h">Your payments</h4><div id="myPayments" class="mini-list"><p class="form-note">Loading…</p></div>
+        <details class="pay-details" id="repay" hidden><summary class="btn btn-coral btn-sm">Submit the payment again</summary>${payForm("Admission fee", S.fees.admission, "adm2")}</details>
       </section>
       ${appSummary()}
     </div>`;
@@ -440,7 +461,8 @@ async function loadMyPayments() {
     const list = (await myList("payments")).sort((a, b) => (toDate(b.createdAt) || 0) - (toDate(a.createdAt) || 0));
     box.innerHTML = list.length ? list.map((p) => `<div class="mini-row"><span><b>${esc(p.purpose)}</b><small>${fmtDate(p.createdAt)} · ${p.method === "upi" ? "UPI " + esc(p.utr || "") : "Cash"}</small></span><span>${money(p.amount)} ${badge(p.status)}</span></div>`).join("")
       : `<p class="form-note">No payments yet.</p>`;
-  } catch (e) { box.innerHTML = `<p class="form-note">${esc(errText(e))}</p>`; }
+    return list;
+  } catch (e) { box.innerHTML = `<p class="form-note">${esc(errText(e))}</p>`; return []; }
 }
 
 // ---------- dashboard
@@ -450,7 +472,7 @@ function dashboard() {
     ${me.status === "inactive" ? `<p class="callout warn">Your membership is currently inactive. Contact the office to reactivate it.</p>` : ""}
     <nav class="jump" aria-label="Sections"><a href="#d-today">Today</a><a href="#d-att">Attendance</a><a href="#d-notices">Notices</a><a href="#d-certs">Certificates</a><a href="#payments">Payments</a><a href="#d-privacy">My data</a></nav>
     <section class="id-hero">
-      <div class="id-person">${me.photo ? `<img src="${me.photo}" alt="" class="avatar-lg">` : ""}
+      <div class="id-person">${safePhoto(me.photo) ? `<img src="${safePhoto(me.photo)}" alt="" class="avatar-lg">` : ""}
         <div><p class="eyebrow">Student ID</p><h2>${esc(me.studentId || "—")}</h2><p><b>${esc(me.name)}</b> · ${esc(me.program)}</p><p class="form-note">${esc(me.batch || "Batch to be assigned")} · Valid till ${fmtDate(me.validTill)}</p></div></div>
       <div class="id-card-wrap"><canvas id="idCanvas" width="1012" height="638" class="id-canvas" aria-label="Your student ID card"></canvas>
         <div class="cta-row"><button class="btn btn-solid btn-sm" id="idDl" type="button">Download ID card</button><button class="btn btn-outline btn-sm" id="idPrint" type="button">Print</button></div></div>
@@ -475,7 +497,7 @@ function dashboard() {
 async function wireDashboard() {
   const me = S.me;
   const logo = await loadImage("assets/dsf-logo.png").catch(() => null);
-  const photo = me.photo ? await loadImage(me.photo).catch(() => null) : null;
+  const photo = safePhoto(me.photo) ? await loadImage(me.photo).catch(() => null) : null;
   drawIdCard($("#idCanvas"), me, logo, photo);
   $("#idDl").onclick = () => $("#idCanvas").toBlob((b) => download((me.studentId || "student-id") + ".png", b), "image/png");
   $("#idPrint").onclick = () => printImage($("#idCanvas").toDataURL("image/png"), me.studentId, "85.6mm 54mm");
@@ -610,6 +632,7 @@ async function attendPage() {
   const shell = (title, body, kind = "") => { root.innerHTML = accountBar() + `<section class="form-card checkin ${kind}"><h3>${title}</h3>${body}</section>`; wireSignOut(); };
   if (!code) return shell("Scan the QR code at the pool", `<p>Ask your trainer to show the check-in QR code, then scan it with your phone camera.</p>`);
   root.innerHTML = `<p class="form-note">Checking your account…</p>`;
+  if (await getStaff()) return shell("This is a staff account", `<p>Students check in with their own account. To mark a student present, use <a href="admin.html#attendance">Staff portal → Attendance</a>.</p>`);
   const snap = await F.getDoc(F.doc(db, "students", user.uid));
   const me = snap.exists() ? snap.data() : null;
   if (!me) return shell("No student account found", `<p>This Google account hasn't applied yet. Sign in with the account you applied with, or <a href="student.html">apply now</a>.</p>`, "bad");
@@ -682,8 +705,8 @@ async function staffPortal() {
   root.innerHTML = `<p class="form-note">Checking staff access…</p>`;
   A.staff = await getStaff();
   if (!A.staff) {
-    root.innerHTML = accountBar() + `<section class="form-card"><h3>No staff access</h3><p>${esc(user.email)} is not on the staff list. Ask an administrator to add this Gmail address under Trainers.</p><p class="form-note">Students should use the <a href="student.html">Student portal</a>.</p></section>`;
-    return wireSignOut();
+    root.innerHTML = `<p class="form-note">This account isn't on the staff list. Opening the Student portal…</p>`;
+    location.replace("student.html?from=staff"); return;
   }
   A.role = A.staff.role;
   const tabs = A.role === "admin" ? TABS_ADMIN : TABS_TRAINER;
@@ -734,7 +757,7 @@ async function tApplications(p) {
   p.innerHTML = list.map((s) => {
     const adm = pay.filter((x) => x.uid === s.id && x.purpose === "Admission fee");
     return `<article class="app-card" data-id="${s.id}">
-      <div class="app-head">${s.photo ? `<img src="${s.photo}" alt="" class="avatar-lg">` : ""}<div><h3>${esc(s.name)}</h3><p>${esc(s.program)} · ${esc(s.batch || "No batch preference")}</p><p class="form-note">Applied ${fmtDate(s.createdAt)} · ${badge(s.status)}</p></div></div>
+      <div class="app-head">${safePhoto(s.photo) ? `<img src="${safePhoto(s.photo)}" alt="" class="avatar-lg">` : ""}<div><h3>${esc(s.name)}</h3><p>${esc(s.program)} · ${esc(s.batch || "No batch preference")}</p><p class="form-note">Applied ${fmtDate(s.createdAt)} · ${badge(s.status)}</p></div></div>
       <dl class="info-grid"><dt>Age</dt><dd>${ageOn(s.dob)} (born ${fmtDate(s.dob)})</dd><dt>Gender</dt><dd>${esc(s.gender || "—")}</dd><dt>Phone</dt><dd><a href="tel:${esc(s.phone)}">${esc(s.phone)}</a></dd><dt>Emergency</dt><dd>${esc(s.emergency)}</dd>
         <dt>Guardian</dt><dd>${esc(s.guardian || "—")}${s.guardianConsent ? " (consent given)" : ""}</dd><dt>Blood group</dt><dd>${esc(s.blood || "—")}</dd><dt>Address</dt><dd>${esc(s.address || "—")}</dd><dt>Email</dt><dd>${esc(s.email || "—")}</dd>
         <dt>Admission fee</dt><dd>${adm.length ? adm.map((x) => `${money(x.amount)} · ${x.method === "upi" ? "UPI " + esc(x.utr) : "Cash"} ${badge(x.status)}`).join("<br>") : "Not submitted yet"}</dd></dl>
@@ -813,7 +836,7 @@ async function tStudents(p) {
     const q = $("#sQ").value.trim().toLowerCase(), f = $("#sF").value;
     const list = st.filter((s) => (!f || s.status === f) && (!q || [s.name, s.studentId, s.phone].some((v) => String(v || "").toLowerCase().includes(q))))
       .sort((a, b) => String(a.name).localeCompare(b.name));
-    $("#sList").innerHTML = list.length ? list.map((s) => `<button type="button" class="student-row" data-open="${s.id}">${s.photo ? `<img src="${s.photo}" alt="" class="avatar">` : `<span class="avatar"></span>`}
+    $("#sList").innerHTML = list.length ? list.map((s) => `<button type="button" class="student-row" data-open="${s.id}">${safePhoto(s.photo) ? `<img src="${safePhoto(s.photo)}" alt="" class="avatar">` : `<span class="avatar"></span>`}
       <span><b>${esc(s.name)}</b><small>${esc(s.studentId || "—")} · ${esc(s.program)} · ${esc(s.batch || "—")}</small></span><span>${badge(s.status)}${s.deleteRequested ? ` <span class="badge bad">Deletion requested</span>` : ""}</span></button>`).join("")
       : `<p class="empty">No students match.</p>`;
     $$("[data-open]", p).forEach((b) => (b.onclick = () => openStudent(b.dataset.open)));
@@ -828,7 +851,7 @@ async function openStudent(id) {
     payments().then((x) => x.filter((y) => y.uid === id)),
     F.getDocs(F.query(F.collection(db, "certificates"), F.where("uid", "==", id))).then((r) => r.docs.map((d) => Object.assign({ id: d.id }, d.data()))).catch(() => []),
   ]);
-  const dlg = modal(`<div class="app-head">${s.photo ? `<img src="${s.photo}" alt="" class="avatar-lg">` : ""}<div><h3>${esc(s.name)}</h3><p>${esc(s.studentId || "No ID yet")} ${badge(s.status)}</p></div></div>
+  const dlg = modal(`<div class="app-head">${safePhoto(s.photo) ? `<img src="${safePhoto(s.photo)}" alt="" class="avatar-lg">` : ""}<div><h3>${esc(s.name)}</h3><p>${esc(s.studentId || "No ID yet")} ${badge(s.status)}</p></div></div>
     ${s.deleteRequested ? `<p class="callout warn">Asked for data deletion on ${fmtDate(s.deleteRequestedAt)}.</p>` : ""}
     <dl class="info-grid"><dt>Born</dt><dd>${fmtDate(s.dob)} (age ${ageOn(s.dob)})</dd><dt>Phone</dt><dd><a href="tel:${esc(s.phone)}">${esc(s.phone)}</a></dd><dt>Emergency</dt><dd>${esc(s.emergency)}</dd><dt>Guardian</dt><dd>${esc(s.guardian || "—")}</dd>
       <dt>Blood</dt><dd>${esc(s.blood || "—")}</dd><dt>Address</dt><dd>${esc(s.address || "—")}</dd><dt>Email</dt><dd>${esc(s.email || "—")}</dd><dt>Attendance</dt><dd>${att.length} days total</dd>
@@ -857,7 +880,7 @@ async function openStudent(id) {
     });
     $("#stuCard", dlg).onclick = async () => {
       const cv = document.createElement("canvas"); cv.width = 1012; cv.height = 638;
-      drawIdCard(cv, s, await loadImage("assets/dsf-logo.png").catch(() => null), s.photo ? await loadImage(s.photo).catch(() => null) : null);
+      drawIdCard(cv, s, await loadImage("assets/dsf-logo.png").catch(() => null), safePhoto(s.photo) ? await loadImage(s.photo).catch(() => null) : null);
       cv.toBlob((b) => download(s.studentId + ".png", b), "image/png");
     };
     $("#stuCert", dlg).onclick = () => { A.certFor = id; dlg.close(); showTab("certificates"); };
@@ -942,7 +965,7 @@ async function openKiosk() {
     const a = new Uint8Array(9); crypto.getRandomValues(a);
     const code = Array.from(a, (b) => "abcdefghjkmnpqrstuvwxyz23456789"[b % 31]).join("");
     try {
-      await F.setDoc(F.doc(db, "kiosk", "current"), { code, day: istDay(), exp: F.Timestamp.fromMillis(Date.now() + 90000), by: user.email });
+      await F.setDoc(F.doc(db, "kiosk", "current"), { code, day: istDay(), at: F.serverTimestamp(), by: user.email });
       $("#kQr", ov).innerHTML = qrSvg(new URL("attend.html?c=" + code, location.href).href); $("#kErr", ov).hidden = true;
     } catch (e) { const er = $("#kErr", ov); er.textContent = errText(e); er.hidden = false; }
     left = 30;
